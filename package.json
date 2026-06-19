@@ -1,0 +1,30 @@
+{
+  "name": "smartapply-monorepo",
+  "version": "1.0.0",
+  "description": "SmartApply - AI Powered Job Discovery & Application Platform",
+  "private": true,
+  "workspaces": [
+    "apps/web",
+    "apps/api",
+    "apps/worker",
+    "packages/database",
+    "packages/shared",
+    "packages/ai"
+  ],
+  "scripts": {
+    "web:dev": "npm run dev -w apps/web",
+    "api:dev": "npm run dev -w apps/api",
+    "worker:dev": "npm run dev -w apps/worker",
+    "db:generate": "npm run generate -w packages/database",
+    "db:migrate": "npm run migrate -w packages/database",
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present"
+  },
+  "devDependencies": {
+    "@types/node": "^26.0.0",
+    "concurrently": "^8.2.2",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.2",
+    "typescript": "^5.3.3"
+  }
+}

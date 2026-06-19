@@ -1,0 +1,91 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           String        @id @default(uuid())
+  email        String        @unique
+  password     String
+  createdAt    DateTime      @default(now())
+  resume       Resume?
+  applications Application[]
+  jobMatches   JobMatch[]
+}
+
+model Resume {
+  id           String     @id @default(uuid())
+  userId       String     @unique
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skills       Json       // stored as string[]
+  experience   Json       // stored as array of experience objects
+  projects     Json       // stored as array of project objects
+  education    Json       // stored as array of education objects
+  rawText      String?
+  fileUrl      String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  jobMatches   JobMatch[]
+}
+
+model Job {
+  id           String        @id @default(uuid())
+  title        String
+  company      String
+  location     String
+  description  String
+  source       String        // 'linkedin', 'indeed'
+  jobUrl       String        @unique
+  companyUrl   String?
+  datePosted   DateTime?
+  scrapedAt    DateTime      @default(now())
+  createdAt    DateTime      @default(now())
+  matches      JobMatch[]
+  applications Application[]
+}
+
+model JobMatch {
+  id             String   @id @default(uuid())
+  jobId          String
+  job            Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  resumeId       String
+  resume         Resume   @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  matchScore     Float
+  matchedSkills  Json     // stored as string[]
+  missingSkills  Json     // stored as string[]
+  recommendation String
+  createdAt      DateTime @default(now())
+
+  @@unique([jobId, userId])
+}
+
+model Application {
+  id               String            @id @default(uuid())
+  userId           String
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobId            String
+  job              Job               @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  status           String            @default("Saved") // 'Saved', 'Applied', 'Interview', 'Rejected', 'Offer'
+  notes            String?
+  appliedAt        DateTime?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  screeningAnswers ScreeningAnswer[]
+
+  @@unique([userId, jobId])
+}
+
+model ScreeningAnswer {
+  id            String      @id @default(uuid())
+  applicationId String
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  question      String
+  answer        String
+  createdAt     DateTime    @default(now())
+}
