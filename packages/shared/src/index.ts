@@ -1,4 +1,4 @@
-export type ApplicationStatus = 'Saved' | 'Applied' | 'Interview' | 'Rejected' | 'Offer';
+export type ApplicationStatus = 'Saved' | 'Applied' | 'Interview' | 'Rejected' | 'Offer' | 'Expired';
 
 export interface UserProfile {
   id: string;
@@ -86,6 +86,7 @@ export interface DashboardStats {
     Interview: number;
     Rejected: number;
     Offer: number;
+    Expired: number;
   };
 }
 

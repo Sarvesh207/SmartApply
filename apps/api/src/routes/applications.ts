@@ -7,12 +7,12 @@ const router = Router();
 
 const createApplicationSchema = z.object({
   jobId: z.string().uuid(),
-  status: z.enum(['Saved', 'Applied', 'Interview', 'Rejected', 'Offer']).optional(),
+  status: z.enum(['Saved', 'Applied', 'Interview', 'Rejected', 'Offer', 'Expired']).optional(),
   notes: z.string().optional(),
 });
 
 const updateApplicationSchema = z.object({
-  status: z.enum(['Saved', 'Applied', 'Interview', 'Rejected', 'Offer']).optional(),
+  status: z.enum(['Saved', 'Applied', 'Interview', 'Rejected', 'Offer', 'Expired']).optional(),
   notes: z.string().optional(),
 });
 
@@ -165,6 +165,165 @@ router.post('/:id/autofill', authenticateJWT, async (req: AuthenticatedRequest, 
   } catch (error) {
     console.error('Autofill error:', error);
     res.status(500).json({ error: 'Failed to start autofill automation' });
+  }
+});
+
+// DELETE /applications/:id
+router.delete('/:id', authenticateJWT, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    // Verify ownership
+    const existing = await prisma.application.findUnique({
+      where: { id },
+    });
+
+    if (!existing || existing.userId !== userId) {
+      return res.status(404).json({ error: 'Application not found' });
+    }
+
+    await prisma.application.delete({
+      where: { id },
+    });
+
+    res.json({ message: 'Application deleted successfully' });
+  } catch (error) {
+    console.error('Delete application error:', error);
+    res.status(500).json({ error: 'Failed to delete application' });
+  }
+});
+
+const createApplicationByUrlSchema = z.object({
+  url: z.string().url(),
+  title: z.string().min(1),
+  company: z.string().min(1),
+  location: z.string().optional().default('Remote'),
+  description: z.string().optional().default('No description provided'),
+  status: z.enum(['Saved', 'Applied', 'Interview', 'Rejected', 'Offer', 'Expired']).optional().default('Saved'),
+  notes: z.string().optional().default(''),
+  appliedAt: z.string().optional().nullable(),
+});
+
+// POST /applications/by-url
+router.post('/by-url', authenticateJWT, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { 
+      url, 
+      title, 
+      company, 
+      location, 
+      description, 
+      status, 
+      notes,
+      appliedAt
+    } = createApplicationByUrlSchema.parse(req.body);
+
+    // 1. Check if job with this URL already exists, or create a new one
+    let job = await prisma.job.findUnique({
+      where: { jobUrl: url },
+    });
+
+    if (!job) {
+      // Determine source from URL
+      let source = 'other';
+      if (url.toLowerCase().includes('linkedin.com')) {
+        source = 'linkedin';
+      } else if (url.toLowerCase().includes('indeed.com')) {
+        source = 'indeed';
+      }
+
+      job = await prisma.job.create({
+        data: {
+          title,
+          company,
+          location,
+          description,
+          source,
+          jobUrl: url,
+        },
+      });
+      
+      // Try to calculate match score immediately if user has a resume
+      const resume = await prisma.resume.findUnique({
+        where: { userId },
+      });
+
+      if (resume) {
+        try {
+          const { matchJobWithResume } = await import('@smartapply/ai');
+          const resumeTyped = {
+            skills: resume.skills as string[],
+            experience: resume.experience as any[],
+            projects: resume.projects as any[],
+            education: resume.education as any[],
+          };
+          const matchResult = await matchJobWithResume(resumeTyped, description, location);
+          await prisma.jobMatch.create({
+            data: {
+              jobId: job.id,
+              userId,
+              resumeId: resume.id,
+              matchScore: matchResult.matchScore,
+              matchedSkills: matchResult.matchedSkills,
+              missingSkills: matchResult.missingSkills,
+              recommendation: matchResult.recommendation,
+            },
+          });
+        } catch (matchErr) {
+          console.error('Failed to match new job from URL:', matchErr);
+        }
+      }
+    }
+
+    // 2. Check if application already exists for this user and job
+    const existing = await prisma.application.findUnique({
+      where: {
+        userId_jobId: { userId, jobId: job.id },
+      },
+    });
+
+    if (existing) {
+      return res.status(400).json({ error: 'You have already added this job to your applications list' });
+    }
+
+    // Determine appliedAt date
+    let appAppliedAt: Date | null = null;
+    if (status === 'Applied') {
+      appAppliedAt = appliedAt ? new Date(appliedAt) : new Date();
+    } else if (appliedAt) {
+      appAppliedAt = new Date(appliedAt);
+    }
+
+    // 3. Create the application
+    const application = await prisma.application.create({
+      data: {
+        userId,
+        jobId: job.id,
+        status,
+        notes,
+        appliedAt: appAppliedAt,
+      },
+      include: {
+        job: true,
+      },
+    });
+
+    res.status(201).json(application);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: error.errors[0].message });
+    }
+    console.error('Create application by url error:', error);
+    res.status(500).json({ error: 'Failed to create application from URL' });
   }
 });
 

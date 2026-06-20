@@ -27,18 +27,18 @@ async function setupScheduler() {
     console.log(`Removed old repeatable job key: ${job.key}`);
   }
 
-  // Schedule job for every 6 hours: '0 */6 * * *'
+  // Schedule job for every 12 hours: '0 */12 * * *'
   // For easy MVP verification, we also run it once immediately on startup if queue is empty
   await jobsQueue.add(
     'scrape-jobs',
     {},
     {
       repeat: {
-        pattern: '0 */6 * * *', // Every 6 hours
+        pattern: '0 */12 * * *', // Every 12 hours
       },
     }
   );
-  console.log('Scheduled job: "scrape-jobs" every 6 hours.');
+  console.log('Scheduled job: "scrape-jobs" every 12 hours.');
 
   // Trigger an immediate scraping job for MVP manual testing, if not already running
   const activeJobs = await jobsQueue.getActive();

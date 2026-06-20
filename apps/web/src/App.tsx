@@ -57,6 +57,8 @@ function AppLayout() {
   );
 }
 
+import { Toaster } from 'react-hot-toast';
+
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -91,6 +93,32 @@ export default function App() {
           />
         </Routes>
       </BrowserRouter>
+      <Toaster 
+        position="top-center" 
+        toastOptions={{
+          className: 'glass-panel border border-white/10 text-white',
+          style: {
+            background: 'rgba(15, 23, 42, 0.95)',
+            backdropFilter: 'blur(8px)',
+            color: '#fff',
+            fontSize: '13px',
+            borderRadius: '12px',
+            padding: '12px 18px',
+          },
+          success: {
+            iconTheme: {
+              primary: '#10b981',
+              secondary: '#fff',
+            },
+          },
+          error: {
+            iconTheme: {
+              primary: '#ef4444',
+              secondary: '#fff',
+            },
+          },
+        }}
+      />
     </QueryClientProvider>
   );
 }

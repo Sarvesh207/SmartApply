@@ -57,7 +57,47 @@ def get_db_connection():
 def run_scraper():
     logging.info("Starting JobSpy scrape...")
     
-    search_query = '"Frontend Developer" OR "Frontend Engineer" OR "React Developer" OR "Next.js Developer"'
+    # Connect to PostgreSQL to fetch user profile skills to build personalized search terms
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    search_query = ""
+    try:
+        # Query unique skills from Resume table
+        cursor.execute('SELECT "skills" FROM "Resume";')
+        rows = cursor.fetchall()
+        
+        # Aggregate all unique skills
+        unique_skills = set()
+        for row in rows:
+            skills_list = row[0]
+            if isinstance(skills_list, list):
+                for skill in skills_list:
+                    if skill and isinstance(skill, str):
+                        unique_skills.add(skill.strip())
+            
+        logging.info(f"Retrieved user skills from database: {list(unique_skills)}")
+        
+        # Build search term queries matching user profiles
+        skills = list(unique_skills)[:6] # Limit to top 6 skills to prevent overly long query parameters
+        if skills:
+            term_clauses = []
+            for skill in skills:
+                term_clauses.append(f'"{skill} Developer"')
+                term_clauses.append(f'"{skill} Engineer"')
+            search_query = " OR ".join(term_clauses)
+        else:
+            # Fallback default query
+            search_query = '"Frontend Developer" OR "Frontend Engineer" OR "React Developer" OR "Next.js Developer"'
+            
+    except Exception as e:
+        logging.warning(f"Failed to load personalized skills from DB: {e}. Falling back to default search query.")
+        search_query = '"Frontend Developer" OR "Frontend Engineer" OR "React Developer" OR "Next.js Developer"'
+    finally:
+        cursor.close()
+        conn.close()
+        
+    logging.info(f"Using search term query: {search_query}")
     
     try:
         # Run JobSpy scraper
@@ -66,7 +106,7 @@ def run_scraper():
             search_term=search_query,
             location="India",
             country_indeed="India",
-            results_wanted=30,  # Reduced from 200 for faster MVP execution/testing, can be increased
+            results_wanted=30,
             hours_old=168,
             linkedin_fetch_description=True
         )

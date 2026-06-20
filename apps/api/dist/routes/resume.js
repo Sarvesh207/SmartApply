@@ -94,5 +94,36 @@ router.get('/', auth_1.authenticateJWT, async (req, res) => {
         res.status(500).json({ error: 'Failed to fetch resume' });
     }
 });
+// PUT /resume
+router.put('/', auth_1.authenticateJWT, async (req, res) => {
+    try {
+        const userId = req.user?.id;
+        if (!userId) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
+        const { skills, experience, projects, education } = req.body;
+        const resume = await database_1.prisma.resume.update({
+            where: { userId },
+            data: {
+                skills,
+                experience,
+                projects,
+                education,
+            },
+        });
+        // Clear stale job matches so they can be re-evaluated against the updated profile
+        await database_1.prisma.jobMatch.deleteMany({
+            where: { userId }
+        });
+        res.json({
+            message: 'Resume profile updated successfully',
+            resume,
+        });
+    }
+    catch (error) {
+        console.error('Update resume error:', error);
+        res.status(500).json({ error: 'Failed to update resume profile' });
+    }
+});
 exports.default = router;
 //# sourceMappingURL=resume.js.map

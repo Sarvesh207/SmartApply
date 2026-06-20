@@ -40,11 +40,11 @@ const auth_1 = require("../middleware/auth");
 const router = (0, express_1.Router)();
 const createApplicationSchema = zod_1.z.object({
     jobId: zod_1.z.string().uuid(),
-    status: zod_1.z.enum(['Saved', 'Applied', 'Interview', 'Rejected', 'Offer']).optional(),
+    status: zod_1.z.enum(['Saved', 'Applied', 'Interview', 'Rejected', 'Offer', 'Expired']).optional(),
     notes: zod_1.z.string().optional(),
 });
 const updateApplicationSchema = zod_1.z.object({
-    status: zod_1.z.enum(['Saved', 'Applied', 'Interview', 'Rejected', 'Offer']).optional(),
+    status: zod_1.z.enum(['Saved', 'Applied', 'Interview', 'Rejected', 'Offer', 'Expired']).optional(),
     notes: zod_1.z.string().optional(),
 });
 // GET /applications
@@ -179,6 +179,143 @@ router.post('/:id/autofill', auth_1.authenticateJWT, async (req, res) => {
     catch (error) {
         console.error('Autofill error:', error);
         res.status(500).json({ error: 'Failed to start autofill automation' });
+    }
+});
+// DELETE /applications/:id
+router.delete('/:id', auth_1.authenticateJWT, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const userId = req.user?.id;
+        if (!userId) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
+        // Verify ownership
+        const existing = await database_1.prisma.application.findUnique({
+            where: { id },
+        });
+        if (!existing || existing.userId !== userId) {
+            return res.status(404).json({ error: 'Application not found' });
+        }
+        await database_1.prisma.application.delete({
+            where: { id },
+        });
+        res.json({ message: 'Application deleted successfully' });
+    }
+    catch (error) {
+        console.error('Delete application error:', error);
+        res.status(500).json({ error: 'Failed to delete application' });
+    }
+});
+const createApplicationByUrlSchema = zod_1.z.object({
+    url: zod_1.z.string().url(),
+    title: zod_1.z.string().min(1),
+    company: zod_1.z.string().min(1),
+    location: zod_1.z.string().optional().default('Remote'),
+    description: zod_1.z.string().optional().default('No description provided'),
+    status: zod_1.z.enum(['Saved', 'Applied', 'Interview', 'Rejected', 'Offer', 'Expired']).optional().default('Saved'),
+    notes: zod_1.z.string().optional().default(''),
+    appliedAt: zod_1.z.string().optional().nullable(),
+});
+// POST /applications/by-url
+router.post('/by-url', auth_1.authenticateJWT, async (req, res) => {
+    try {
+        const userId = req.user?.id;
+        if (!userId) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
+        const { url, title, company, location, description, status, notes, appliedAt } = createApplicationByUrlSchema.parse(req.body);
+        // 1. Check if job with this URL already exists, or create a new one
+        let job = await database_1.prisma.job.findUnique({
+            where: { jobUrl: url },
+        });
+        if (!job) {
+            // Determine source from URL
+            let source = 'other';
+            if (url.toLowerCase().includes('linkedin.com')) {
+                source = 'linkedin';
+            }
+            else if (url.toLowerCase().includes('indeed.com')) {
+                source = 'indeed';
+            }
+            job = await database_1.prisma.job.create({
+                data: {
+                    title,
+                    company,
+                    location,
+                    description,
+                    source,
+                    jobUrl: url,
+                },
+            });
+            // Try to calculate match score immediately if user has a resume
+            const resume = await database_1.prisma.resume.findUnique({
+                where: { userId },
+            });
+            if (resume) {
+                try {
+                    const { matchJobWithResume } = await Promise.resolve().then(() => __importStar(require('@smartapply/ai')));
+                    const resumeTyped = {
+                        skills: resume.skills,
+                        experience: resume.experience,
+                        projects: resume.projects,
+                        education: resume.education,
+                    };
+                    const matchResult = await matchJobWithResume(resumeTyped, description, location);
+                    await database_1.prisma.jobMatch.create({
+                        data: {
+                            jobId: job.id,
+                            userId,
+                            resumeId: resume.id,
+                            matchScore: matchResult.matchScore,
+                            matchedSkills: matchResult.matchedSkills,
+                            missingSkills: matchResult.missingSkills,
+                            recommendation: matchResult.recommendation,
+                        },
+                    });
+                }
+                catch (matchErr) {
+                    console.error('Failed to match new job from URL:', matchErr);
+                }
+            }
+        }
+        // 2. Check if application already exists for this user and job
+        const existing = await database_1.prisma.application.findUnique({
+            where: {
+                userId_jobId: { userId, jobId: job.id },
+            },
+        });
+        if (existing) {
+            return res.status(400).json({ error: 'You have already added this job to your applications list' });
+        }
+        // Determine appliedAt date
+        let appAppliedAt = null;
+        if (status === 'Applied') {
+            appAppliedAt = appliedAt ? new Date(appliedAt) : new Date();
+        }
+        else if (appliedAt) {
+            appAppliedAt = new Date(appliedAt);
+        }
+        // 3. Create the application
+        const application = await database_1.prisma.application.create({
+            data: {
+                userId,
+                jobId: job.id,
+                status,
+                notes,
+                appliedAt: appAppliedAt,
+            },
+            include: {
+                job: true,
+            },
+        });
+        res.status(201).json(application);
+    }
+    catch (error) {
+        if (error instanceof zod_1.z.ZodError) {
+            return res.status(400).json({ error: error.errors[0].message });
+        }
+        console.error('Create application by url error:', error);
+        res.status(500).json({ error: 'Failed to create application from URL' });
     }
 });
 exports.default = router;

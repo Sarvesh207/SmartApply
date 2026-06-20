@@ -99,4 +99,39 @@ router.get('/', authenticateJWT, async (req: AuthenticatedRequest, res: Response
   }
 });
 
+// PUT /resume
+router.put('/', authenticateJWT, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { skills, experience, projects, education } = req.body;
+
+    const resume = await prisma.resume.update({
+      where: { userId },
+      data: {
+        skills,
+        experience,
+        projects,
+        education,
+      },
+    });
+
+    // Clear stale job matches so they can be re-evaluated against the updated profile
+    await prisma.jobMatch.deleteMany({
+      where: { userId }
+    });
+
+    res.json({
+      message: 'Resume profile updated successfully',
+      resume,
+    });
+  } catch (error) {
+    console.error('Update resume error:', error);
+    res.status(500).json({ error: 'Failed to update resume profile' });
+  }
+});
+
 export default router;

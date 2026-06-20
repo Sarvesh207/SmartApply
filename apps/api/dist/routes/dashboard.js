@@ -27,6 +27,7 @@ router.get('/stats', auth_1.authenticateJWT, async (req, res) => {
             Interview: 0,
             Rejected: 0,
             Offer: 0,
+            Expired: 0,
         };
         applications.forEach(app => {
             const status = app.status;

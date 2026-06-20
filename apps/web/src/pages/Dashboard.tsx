@@ -43,6 +43,7 @@ export default function Dashboard() {
     { name: 'Interview', value: stats.statusCounts.Interview, color: '#10b981' },
     { name: 'Offer', value: stats.statusCounts.Offer, color: '#f59e0b' },
     { name: 'Rejected', value: stats.statusCounts.Rejected, color: '#ef4444' },
+    { name: 'Expired', value: stats.statusCounts.Expired || 0, color: '#64748b' },
   ];
 
   const cards = [

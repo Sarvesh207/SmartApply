@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import toast from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '../utils/api';
 import { JobDTO } from '@smartapply/shared';
@@ -15,7 +16,8 @@ import {
   ChevronRight,
   Loader2,
   CheckCircle,
-  Building
+  Building,
+  SearchCode
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -48,10 +50,18 @@ export default function Jobs() {
   const matchMutation = useMutation({
     mutationFn: (jobId: string) => 
       apiFetch(`/jobs/${jobId}/match`, { method: 'POST' }),
-    onSuccess: (data, jobId) => {
-      // Update cache
+    onMutate: () => {
+      return { toastId: toast.loading('Analyzing job requirements against your resume...') };
+    },
+    onSuccess: (data, jobId, context) => {
+      toast.dismiss(context?.toastId);
+      toast.success(`Analysis complete! Found ${data.matchScore}% resume compatibility.`);
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+    },
+    onError: (err: any, jobId, context) => {
+      toast.dismiss(context?.toastId);
+      toast.error(err.message || 'Failed to match job. Make sure you have uploaded your resume.');
     }
   });
 
@@ -65,10 +75,23 @@ export default function Jobs() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['applications'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
-      alert('Job successfully saved to Applications board!');
+      toast.success('Job successfully saved to Applications board!');
     },
     onError: (err: any) => {
-      alert(err.message || 'Failed to save job');
+      toast.error(err.message || 'Failed to save job');
+    }
+  });
+
+  // Mutation to trigger local job scraper
+  const triggerScrapeMutation = useMutation({
+    mutationFn: () => apiFetch('/jobs/trigger-scrape', { method: 'POST' }),
+    onSuccess: (res) => {
+      toast.success(res.message || 'Scraper task triggered successfully!');
+      queryClient.invalidateQueries({ queryKey: ['jobs'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+    },
+    onError: (err: any) => {
+      toast.error(err.message || 'Failed to trigger background scraping.');
     }
   });
 
@@ -86,11 +109,23 @@ export default function Jobs() {
 
   return (
     <div className="space-y-8 animate-fade-in p-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-extrabold tracking-tight gradient-text">Job Board</h1>
           <p className="text-muted-foreground text-sm mt-1">Explore and filter scraped roles from LinkedIn & Indeed.</p>
         </div>
+        <button
+          disabled={triggerScrapeMutation.isPending}
+          onClick={() => triggerScrapeMutation.mutate()}
+          className="py-2.5 px-4 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 text-purple-400 rounded-xl font-bold text-xs flex items-center gap-2 hover:glow-hover transition-all disabled:opacity-50 shrink-0"
+        >
+          {triggerScrapeMutation.isPending ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <SearchCode className="w-4 h-4" />
+          )}
+          Fetch New Jobs
+        </button>
       </div>
 
       {/* Filters form */}
