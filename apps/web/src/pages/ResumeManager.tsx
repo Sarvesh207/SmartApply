@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiFetch, API_BASE_URL } from '../utils/api';
+import { apiFetch, apiClient } from '../utils/api';
 import { useAuthStore } from '../store/authStore';
 import { 
   FileText, 
@@ -19,6 +19,9 @@ import {
   Trash2,
   SearchCode
 } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 
 interface ResumeData {
   id: string;
@@ -42,11 +45,18 @@ interface ResumeData {
   updatedAt: string;
 }
 
+const uploadSchema = z.object({
+  resume: z.any()
+    .refine((fileList) => fileList instanceof FileList && fileList.length > 0, 'Please select a PDF file')
+    .refine((fileList) => fileList?.[0]?.type === 'application/pdf', 'Only PDF files are supported')
+    .refine((fileList) => fileList?.[0]?.size <= 5 * 1024 * 1024, 'PDF file must be less than 5MB')
+});
+
+type UploadInputs = z.infer<typeof uploadSchema>;
+
 export default function ResumeManager() {
   const queryClient = useQueryClient();
   const token = useAuthStore(state => state.token);
-  const [file, setFile] = useState<File | null>(null);
-  const [uploadError, setUploadError] = useState('');
   const [activeTab, setActiveTab] = useState<'skills' | 'experience' | 'projects' | 'education'>('skills');
 
   // Editing state
@@ -55,6 +65,14 @@ export default function ResumeManager() {
   const [editedExperience, setEditedExperience] = useState<ResumeData['experience']>([]);
   const [editedProjects, setEditedProjects] = useState<ResumeData['projects']>([]);
   const [editedEducation, setEditedEducation] = useState<ResumeData['education']>([]);
+
+  // React Hook Form for Resume Upload
+  const { register, handleSubmit, watch, reset, formState: { errors } } = useForm<UploadInputs>({
+    resolver: zodResolver(uploadSchema)
+  });
+
+  const resumeFile = watch('resume');
+  const fileName = resumeFile && resumeFile.length > 0 ? resumeFile[0].name : null;
 
   // Query to fetch current resume
   const { data: resume, isLoading, error } = useQuery<ResumeData>({
@@ -80,30 +98,19 @@ export default function ResumeManager() {
       const formData = new FormData();
       formData.append('resume', uploadFile);
 
-      const response = await fetch(`${API_BASE_URL}/resume/upload`, {
-        method: 'POST',
+      const response = await apiClient.post('/resume/upload', formData, {
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'multipart/form-data',
         },
-        body: formData,
       });
-
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to upload resume');
-      }
-      return data.resume;
+      return response.data.resume;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['resume'] });
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
-      setFile(null);
-      setUploadError('');
+      reset();
       alert('Resume parsed and saved successfully!');
-    },
-    onError: (err: any) => {
-      setUploadError(err.message || 'File upload failed');
     }
   });
 
@@ -137,23 +144,9 @@ export default function ResumeManager() {
     }
   });
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const selectedFile = e.target.files[0];
-      if (selectedFile.type !== 'application/pdf') {
-        setUploadError('Only PDF files are supported');
-        setFile(null);
-      } else {
-        setFile(selectedFile);
-        setUploadError('');
-      }
-    }
-  };
-
-  const handleUploadSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (file) {
-      uploadMutation.mutate(file);
+  const handleUploadSubmit = (data: UploadInputs) => {
+    if (data.resume && data.resume.length > 0) {
+      uploadMutation.mutate(data.resume[0]);
     }
   };
 
@@ -268,29 +261,29 @@ export default function ResumeManager() {
           <div className="glass-panel p-6 rounded-2xl border border-white/5 shadow-xl space-y-4">
             <h3 className="text-sm font-semibold text-white">Upload New Resume</h3>
             
-            {uploadError && (
+            {(errors.resume || uploadMutation.isError) && (
               <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-xs p-3 rounded-lg flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>{uploadError}</span>
+                <span>{typeof errors.resume?.message === 'string' ? errors.resume.message : (uploadMutation.error?.message || 'File upload failed')}</span>
               </div>
             )}
 
-            <form onSubmit={handleUploadSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit(handleUploadSubmit)} className="space-y-4">
               <div className="border-2 border-dashed border-white/10 hover:border-purple-500/40 rounded-xl p-6 text-center cursor-pointer transition-colors relative">
                 <input 
                   type="file" 
                   accept=".pdf"
                   className="absolute inset-0 opacity-0 cursor-pointer" 
-                  onChange={handleFileChange}
+                  {...register('resume')}
                 />
                 <UploadCloud className="w-8 h-8 text-gray-500 mx-auto mb-2" />
                 <span className="text-xs text-gray-400 block">
-                  {file ? file.name : 'Click to select or drag PDF file'}
+                  {fileName ? fileName : 'Click to select or drag PDF file'}
                 </span>
                 <span className="text-[10px] text-gray-600 block mt-1">PDF max 5MB</span>
               </div>
 
-              {file && (
+              {fileName && (
                 <button
                   type="submit"
                   disabled={uploadMutation.isPending}

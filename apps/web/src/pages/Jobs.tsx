@@ -20,6 +20,9 @@ import {
   SearchCode
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 
 interface FetchJobsResponse {
   jobs: JobDTO[];
@@ -31,19 +34,38 @@ interface FetchJobsResponse {
   };
 }
 
+const filterSchema = z.object({
+  search: z.string().optional().default(''),
+  location: z.string().optional().default(''),
+  source: z.string().optional().default(''),
+});
+
+type FilterInputs = z.infer<typeof filterSchema>;
+
 export default function Jobs() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
-  const [search, setSearch] = useState('');
-  const [source, setSource] = useState('');
-  const [location, setLocation] = useState('');
+  const [appliedFilters, setAppliedFilters] = useState<FilterInputs>({
+    search: '',
+    location: '',
+    source: '',
+  });
+
+  const { register, handleSubmit } = useForm<FilterInputs>({
+    resolver: zodResolver(filterSchema),
+    defaultValues: {
+      search: '',
+      location: '',
+      source: '',
+    }
+  });
   
   // Query to fetch jobs
-  const { data, isLoading, error, refetch } = useQuery<FetchJobsResponse>({
-    queryKey: ['jobs', page, search, source, location],
+  const { data, isLoading, error } = useQuery<FetchJobsResponse>({
+    queryKey: ['jobs', page, appliedFilters.search, appliedFilters.source, appliedFilters.location],
     queryFn: () => 
-      apiFetch(`/jobs?page=${page}&limit=10&search=${search}&source=${source}&location=${location}`),
+      apiFetch(`/jobs?page=${page}&limit=10&search=${appliedFilters.search}&source=${appliedFilters.source}&location=${appliedFilters.location}`),
   });
 
   // Mutation to run job matching
@@ -95,10 +117,9 @@ export default function Jobs() {
     }
   });
 
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSearchSubmit = (data: FilterInputs) => {
     setPage(1);
-    refetch();
+    setAppliedFilters(data);
   };
 
   const getScoreBadgeClass = (score: number) => {
@@ -129,15 +150,14 @@ export default function Jobs() {
       </div>
 
       {/* Filters form */}
-      <form onSubmit={handleSearchSubmit} className="glass-panel p-6 rounded-2xl border border-white/5 shadow-xl grid grid-cols-1 md:grid-cols-4 gap-4">
+      <form onSubmit={handleSubmit(handleSearchSubmit)} className="glass-panel p-6 rounded-2xl border border-white/5 shadow-xl grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
           <input
             type="text"
             className="w-full pl-9 pr-4 py-2 bg-muted border border-card-border rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 text-sm"
             placeholder="Search title, company, skills..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
+            {...register('search')}
           />
         </div>
 
@@ -147,16 +167,14 @@ export default function Jobs() {
             type="text"
             className="w-full pl-9 pr-4 py-2 bg-muted border border-card-border rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 text-sm"
             placeholder="Location (e.g. Remote, Bangalore)"
-            value={location}
-            onChange={e => setLocation(e.target.value)}
+            {...register('location')}
           />
         </div>
 
         <div>
           <select
             className="w-full px-4 py-2 bg-muted border border-card-border rounded-xl text-white focus:outline-none focus:border-purple-500 text-sm"
-            value={source}
-            onChange={e => setSource(e.target.value)}
+            {...register('source')}
           >
             <option value="">All Sources</option>
             <option value="linkedin">LinkedIn</option>

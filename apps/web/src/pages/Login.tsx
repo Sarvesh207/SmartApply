@@ -1,42 +1,44 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
-import { API_BASE_URL } from '../utils/api';
+import { apiClient } from '../utils/api';
 import { LogIn, Key, Mail, Loader2 } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { useMutation } from '@tanstack/react-query';
+
+const loginSchema = z.object({
+  email: z.string().email('Please enter a valid email address'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
+});
+
+type LoginInputs = z.infer<typeof loginSchema>;
 
 export default function Login() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
   const setAuth = useAuthStore(state => state.setAuth);
   const navigate = useNavigate();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
+  const { register, handleSubmit, formState: { errors } } = useForm<LoginInputs>({
+    resolver: zodResolver(loginSchema),
+  });
 
-    try {
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+  const loginMutation = useMutation({
+    mutationFn: async (data: LoginInputs) => {
+      const response = await apiClient.post('/auth/login', { 
+        email: data.email, 
+        password: data.password 
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to login');
-      }
-
+      return response.data;
+    },
+    onSuccess: (data) => {
       setAuth(data.token, data.user);
       navigate('/');
-    } catch (err: any) {
-      setError(err.message || 'Something went wrong');
-    } finally {
-      setLoading(false);
     }
+  });
+
+  const onSubmit = (data: LoginInputs) => {
+    loginMutation.mutate(data);
   };
 
   return (
@@ -54,26 +56,29 @@ export default function Login() {
           <p className="text-muted-foreground text-sm mt-1">AI-Powered Job Discovery & Tracking</p>
         </div>
 
-        {error && (
+        {loginMutation.isError && (
           <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm p-3 rounded-lg mb-6">
-            {error}
+            {loginMutation.error.message || 'Something went wrong'}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">Email Address</label>
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
               <input
                 type="email"
-                required
-                className="w-full pl-10 pr-4 py-3 bg-muted border border-card-border rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all text-sm"
+                className={`w-full pl-10 pr-4 py-3 bg-muted border rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-1 transition-all text-sm ${
+                  errors.email ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-card-border focus:border-purple-500 focus:ring-purple-500'
+                }`}
                 placeholder="you@example.com"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
+                {...register('email')}
               />
             </div>
+            {errors.email && (
+              <span className="text-red-400 text-xs mt-1 block pl-1">{errors.email.message}</span>
+            )}
           </div>
 
           <div>
@@ -82,21 +87,24 @@ export default function Login() {
               <Key className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
               <input
                 type="password"
-                required
-                className="w-full pl-10 pr-4 py-3 bg-muted border border-card-border rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all text-sm"
+                className={`w-full pl-10 pr-4 py-3 bg-muted border rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-1 transition-all text-sm ${
+                  errors.password ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-card-border focus:border-purple-500 focus:ring-purple-500'
+                }`}
                 placeholder="••••••••"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
+                {...register('password')}
               />
             </div>
+            {errors.password && (
+              <span className="text-red-400 text-xs mt-1 block pl-1">{errors.password.message}</span>
+            )}
           </div>
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={loginMutation.isPending}
             className="w-full py-3 px-4 btn-primary rounded-xl font-semibold flex items-center justify-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:glow-hover"
           >
-            {loading ? (
+            {loginMutation.isPending ? (
               <Loader2 className="w-5 h-5 animate-spin" />
             ) : (
               <>

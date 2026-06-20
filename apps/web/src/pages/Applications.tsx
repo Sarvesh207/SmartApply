@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import toast from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '../utils/api';
 import { ApplicationDTO, ApplicationStatus } from '@smartapply/shared';
@@ -22,6 +21,10 @@ import {
   Edit2
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import toast from 'react-hot-toast';
 
 const STATUS_OPTIONS: { id: ApplicationStatus; label: string; color: string; border: string; bg: string }[] = [
   { id: 'Saved', label: 'Saved Jobs', color: 'text-purple-400', border: 'border-purple-500/20', bg: 'bg-purple-500/10' },
@@ -31,6 +34,19 @@ const STATUS_OPTIONS: { id: ApplicationStatus; label: string; color: string; bor
   { id: 'Rejected', label: 'Rejected', color: 'text-red-400', border: 'border-red-500/20', bg: 'bg-red-500/10' },
   { id: 'Expired', label: 'Expired', color: 'text-slate-400', border: 'border-slate-500/20', bg: 'bg-slate-500/10' },
 ];
+
+const addJobSchema = z.object({
+  url: z.string().url('Please enter a valid URL'),
+  title: z.string().min(1, 'Job title is required'),
+  company: z.string().min(1, 'Company name is required'),
+  location: z.string().optional().default('Remote'),
+  description: z.string().optional().default(''),
+  status: z.enum(['Saved', 'Applied', 'Interview', 'Rejected', 'Offer', 'Expired']).optional().default('Saved'),
+  notes: z.string().optional().default(''),
+  appliedAt: z.string().optional().nullable(),
+});
+
+type AddJobInputs = z.infer<typeof addJobSchema>;
 
 export default function Applications() {
   const navigate = useNavigate();
@@ -47,16 +63,22 @@ export default function Applications() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
-  // Form State for Adding Job by URL
-  const [urlInput, setUrlInput] = useState('');
-  const [titleInput, setTitleInput] = useState('');
-  const [companyInput, setCompanyInput] = useState('');
-  const [locationInput, setLocationInput] = useState('Remote');
-  const [descriptionInput, setDescriptionInput] = useState('');
-  const [statusInput, setStatusInput] = useState<ApplicationStatus>('Saved');
-  const [notesInput, setNotesInput] = useState('');
-  const [appliedDateInput, setAppliedDateInput] = useState('');
-  const [addJobError, setAddJobError] = useState('');
+  // React Hook Form for URL Add Modal
+  const { register, handleSubmit, setValue, watch, reset, formState: { errors } } = useForm<AddJobInputs>({
+    resolver: zodResolver(addJobSchema),
+    defaultValues: {
+      location: 'Remote',
+      status: 'Saved',
+      url: '',
+      title: '',
+      company: '',
+      description: '',
+      notes: '',
+      appliedAt: '',
+    }
+  });
+
+  const selectedStatus = watch('status');
 
   // Fetch applications
   const { data: applications = [], isLoading, error } = useQuery<ApplicationDTO[]>({
@@ -110,11 +132,10 @@ export default function Applications() {
       queryClient.invalidateQueries({ queryKey: ['applications'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
       setShowAddModal(false);
-      resetAddForm();
+      reset();
     },
     onError: (err: any) => {
       toast.error(err.message || 'Failed to import job application');
-      setAddJobError(err.message || 'Failed to add job application');
     }
   });
 
@@ -137,47 +158,16 @@ export default function Applications() {
     }
   });
 
-  const resetAddForm = () => {
-    setUrlInput('');
-    setTitleInput('');
-    setCompanyInput('');
-    setLocationInput('Remote');
-    setDescriptionInput('');
-    setStatusInput('Saved');
-    setNotesInput('');
-    setAppliedDateInput('');
-    setAddJobError('');
-  };
-
-  const handleUrlChange = (val: string) => {
-    setUrlInput(val);
-    // Simple regex parsing to extract company/title guesses from URLs
-    if (val.includes('linkedin.com/jobs/view/')) {
-      // Just some sample guesses to make it feel smart
-      setTitleInput(titleInput || 'Software Engineer');
-      setCompanyInput(companyInput || 'LinkedIn Job Posting');
-    } else if (val.includes('indeed.com')) {
-      setTitleInput(titleInput || 'Developer Role');
-      setCompanyInput(companyInput || 'Indeed Job Posting');
-    }
-  };
-
-  const handleAddSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!urlInput || !titleInput || !companyInput) {
-      setAddJobError('Please fill out all required fields.');
-      return;
-    }
-    
+  const handleAddSubmit = (data: AddJobInputs) => {
     addByUrlMutation.mutate({
-      url: urlInput,
-      title: titleInput,
-      company: companyInput,
-      location: locationInput,
-      description: descriptionInput || undefined,
-      status: statusInput,
-      notes: notesInput || undefined,
-      appliedAt: statusInput === 'Applied' && appliedDateInput ? new Date(appliedDateInput).toISOString() : undefined
+      url: data.url,
+      title: data.title,
+      company: data.company,
+      location: data.location,
+      description: data.description || undefined,
+      status: data.status,
+      notes: data.notes || undefined,
+      appliedAt: data.status === 'Applied' && data.appliedAt ? new Date(data.appliedAt).toISOString() : undefined
     });
   };
 
@@ -275,7 +265,10 @@ export default function Applications() {
         </div>
         <div className="flex gap-3">
           <button
-            onClick={() => setShowAddModal(true)}
+            onClick={() => {
+              reset();
+              setShowAddModal(true);
+            }}
             className="py-2.5 px-4 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold text-xs flex items-center gap-2 hover:glow-hover transition-all"
           >
             <Plus className="w-4 h-4" />
@@ -576,23 +569,37 @@ export default function Applications() {
               </button>
             </div>
 
-            {addJobError && (
-              <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-xs p-3 rounded-xl">
-                {addJobError}
+            {addByUrlMutation.isError && (
+              <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-xs p-3 rounded-xl font-medium">
+                {addByUrlMutation.error.message || 'Failed to add job application'}
               </div>
             )}
 
-            <form onSubmit={handleAddSubmit} className="space-y-4 text-xs">
+            <form onSubmit={handleSubmit(handleAddSubmit)} className="space-y-4 text-xs">
               <div>
                 <label className="block text-gray-400 font-semibold mb-1">Job URL / Link *</label>
                 <input
                   type="url"
-                  required
                   placeholder="https://www.linkedin.com/jobs/view/123..."
-                  className="w-full p-2.5 bg-muted border border-card-border rounded-xl text-white focus:outline-none focus:border-purple-500 text-xs"
-                  value={urlInput}
-                  onChange={(e) => handleUrlChange(e.target.value)}
+                  className={`w-full p-2.5 bg-muted border rounded-xl text-white focus:outline-none focus:ring-1 transition-all text-xs ${
+                    errors.url ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-card-border focus:border-purple-500 focus:ring-purple-500'
+                  }`}
+                  {...register('url', {
+                    onChange: (e) => {
+                      const val = e.target.value;
+                      if (val.includes('linkedin.com/jobs/view/')) {
+                        setValue('title', watch('title') || 'Software Engineer');
+                        setValue('company', watch('company') || 'LinkedIn Job Posting');
+                      } else if (val.includes('indeed.com')) {
+                        setValue('title', watch('title') || 'Developer Role');
+                        setValue('company', watch('company') || 'Indeed Job Posting');
+                      }
+                    }
+                  })}
                 />
+                {errors.url && (
+                  <span className="text-red-400 text-[10px] mt-1 block pl-1">{errors.url.message}</span>
+                )}
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -600,23 +607,29 @@ export default function Applications() {
                   <label className="block text-gray-400 font-semibold mb-1">Job Title *</label>
                   <input
                     type="text"
-                    required
                     placeholder="e.g. Frontend Engineer"
-                    className="w-full p-2.5 bg-muted border border-card-border rounded-xl text-white focus:outline-none focus:border-purple-500 text-xs"
-                    value={titleInput}
-                    onChange={(e) => setTitleInput(e.target.value)}
+                    className={`w-full p-2.5 bg-muted border rounded-xl text-white focus:outline-none focus:ring-1 transition-all text-xs ${
+                      errors.title ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-card-border focus:border-purple-500 focus:ring-purple-500'
+                    }`}
+                    {...register('title')}
                   />
+                  {errors.title && (
+                    <span className="text-red-400 text-[10px] mt-1 block pl-1">{errors.title.message}</span>
+                  )}
                 </div>
                 <div>
                   <label className="block text-gray-400 font-semibold mb-1">Company Name *</label>
                   <input
                     type="text"
-                    required
                     placeholder="e.g. Google"
-                    className="w-full p-2.5 bg-muted border border-card-border rounded-xl text-white focus:outline-none focus:border-purple-500 text-xs"
-                    value={companyInput}
-                    onChange={(e) => setCompanyInput(e.target.value)}
+                    className={`w-full p-2.5 bg-muted border rounded-xl text-white focus:outline-none focus:ring-1 transition-all text-xs ${
+                      errors.company ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-card-border focus:border-purple-500 focus:ring-purple-500'
+                    }`}
+                    {...register('company')}
                   />
+                  {errors.company && (
+                    <span className="text-red-400 text-[10px] mt-1 block pl-1">{errors.company.message}</span>
+                  )}
                 </div>
               </div>
 
@@ -627,16 +640,14 @@ export default function Applications() {
                     type="text"
                     placeholder="e.g. Bangalore, Remote"
                     className="w-full p-2.5 bg-muted border border-card-border rounded-xl text-white focus:outline-none focus:border-purple-500 text-xs"
-                    value={locationInput}
-                    onChange={(e) => setLocationInput(e.target.value)}
+                    {...register('location')}
                   />
                 </div>
                 <div>
                   <label className="block text-gray-400 font-semibold mb-1">Status</label>
                   <select
                     className="w-full p-2.5 bg-muted border border-card-border rounded-xl text-white focus:outline-none focus:border-purple-500 text-xs"
-                    value={statusInput}
-                    onChange={(e) => setStatusInput(e.target.value as ApplicationStatus)}
+                    {...register('status')}
                   >
                     {STATUS_OPTIONS.map((opt) => (
                       <option key={opt.id} value={opt.id}>
@@ -647,14 +658,13 @@ export default function Applications() {
                 </div>
               </div>
 
-              {statusInput === 'Applied' && (
+              {selectedStatus === 'Applied' && (
                 <div>
                   <label className="block text-gray-400 font-semibold mb-1">Applied Date</label>
                   <input
                     type="date"
                     className="w-full p-2.5 bg-muted border border-card-border rounded-xl text-white focus:outline-none focus:border-purple-500 text-xs font-sans"
-                    value={appliedDateInput}
-                    onChange={(e) => setAppliedDateInput(e.target.value)}
+                    {...register('appliedAt')}
                   />
                 </div>
               )}
@@ -665,8 +675,7 @@ export default function Applications() {
                   type="text"
                   placeholder="e.g. Referred by contact, follow up next Monday"
                   className="w-full p-2.5 bg-muted border border-card-border rounded-xl text-white focus:outline-none focus:border-purple-500 text-xs"
-                  value={notesInput}
-                  onChange={(e) => setNotesInput(e.target.value)}
+                  {...register('notes')}
                 />
               </div>
 
@@ -676,8 +685,7 @@ export default function Applications() {
                   rows={4}
                   placeholder="Paste details of the role to run instant AI matching..."
                   className="w-full p-2.5 bg-muted border border-card-border rounded-xl text-white focus:outline-none focus:border-purple-500 text-xs font-sans"
-                  value={descriptionInput}
-                  onChange={(e) => setDescriptionInput(e.target.value)}
+                  {...register('description')}
                 />
               </div>
 
