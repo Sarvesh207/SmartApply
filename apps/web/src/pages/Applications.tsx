@@ -27,8 +27,8 @@ import * as z from 'zod';
 import toast from 'react-hot-toast';
 
 const STATUS_OPTIONS: { id: ApplicationStatus; label: string; color: string; border: string; bg: string }[] = [
-  { id: 'Saved', label: 'Saved Jobs', color: 'text-purple-400', border: 'border-purple-500/20', bg: 'bg-purple-500/10' },
-  { id: 'Applied', label: 'Applied', color: 'text-indigo-400', border: 'border-indigo-500/20', bg: 'bg-indigo-500/10' },
+  { id: 'Saved', label: 'Saved Jobs', color: 'text-neutral-300', border: 'border-neutral-500/20', bg: 'bg-neutral-500/10' },
+  { id: 'Applied', label: 'Applied', color: 'text-gray-300', border: 'border-gray-500/20', bg: 'bg-gray-500/10' },
   { id: 'Interview', label: 'Interviews', color: 'text-emerald-400', border: 'border-emerald-500/20', bg: 'bg-emerald-500/10' },
   { id: 'Offer', label: 'Offers', color: 'text-amber-400', border: 'border-amber-500/20', bg: 'bg-amber-500/10' },
   { id: 'Rejected', label: 'Rejected', color: 'text-red-400', border: 'border-red-500/20', bg: 'bg-red-500/10' },
@@ -236,7 +236,7 @@ export default function Applications() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-8 h-8 text-purple-500 animate-spin" />
+        <Loader2 className="w-8 h-8 text-white animate-spin" />
       </div>
     );
   }
@@ -269,14 +269,14 @@ export default function Applications() {
               reset();
               setShowAddModal(true);
             }}
-            className="py-2.5 px-4 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold text-xs flex items-center gap-2 hover:glow-hover transition-all"
+            className="py-2.5 px-4 bg-white hover:bg-neutral-200 text-black rounded-xl font-bold text-xs flex items-center gap-2 hover:glow-hover transition-all"
           >
             <Plus className="w-4 h-4" />
             Add Job by URL
           </button>
           <button
             onClick={() => navigate('/jobs')}
-            className="py-2.5 px-4 bg-white/5 hover:bg-white/10 border border-white/5 text-purple-400 rounded-xl font-bold text-xs"
+            className="py-2.5 px-4 bg-white/5 hover:bg-white/10 border border-white/5 text-white rounded-xl font-bold text-xs"
           >
             Job Board
           </button>
@@ -291,7 +291,7 @@ export default function Applications() {
             onClick={() => setActiveTab('All')}
             className={`flex items-center gap-2 px-4 py-3 border-b-2 text-xs font-semibold whitespace-nowrap transition-all ${
               activeTab === 'All' 
-                ? 'border-purple-500 text-purple-400' 
+                ? 'border-white text-white' 
                 : 'border-transparent text-muted-foreground hover:text-white'
             }`}
           >
@@ -306,7 +306,7 @@ export default function Applications() {
               onClick={() => setActiveTab(opt.id)}
               className={`flex items-center gap-2 px-4 py-3 border-b-2 text-xs font-semibold whitespace-nowrap transition-all ${
                 activeTab === opt.id 
-                  ? 'border-purple-500 text-purple-400' 
+                  ? 'border-white text-white' 
                   : 'border-transparent text-muted-foreground hover:text-white'
               }`}
             >
@@ -323,7 +323,7 @@ export default function Applications() {
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
           <input
             type="text"
-            className="w-full pl-10 pr-4 py-2.5 bg-muted/60 border border-card-border rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 text-xs shadow-inner"
+            className="w-full pl-10 pr-4 py-2.5 bg-muted/60 border border-card-border rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-white text-xs shadow-inner"
             placeholder="Search company, title, location, or notes..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -386,7 +386,7 @@ export default function Applications() {
                       <div className="flex items-center gap-2 max-w-xs">
                         <button
                           onClick={() => setSelectedApp(app)}
-                          className="font-bold text-white hover:text-purple-400 text-left transition-colors truncate leading-snug hover:underline"
+                          className="font-bold text-white hover:text-neutral-300 text-left transition-colors truncate leading-snug hover:underline"
                           title="Click to view details"
                         >
                           {app.job.title}
@@ -426,7 +426,7 @@ export default function Applications() {
                     <td className="p-4 text-gray-400">
                       <input
                         type="date"
-                        className="bg-transparent hover:bg-white/5 border-0 focus:border border-purple-500/20 focus:bg-muted p-1 rounded font-sans text-xs text-gray-300 w-28 focus:outline-none"
+                        className="bg-transparent hover:bg-white/5 border-0 focus:border border-white/20 focus:bg-muted p-1 rounded font-sans text-xs text-gray-300 w-28 focus:outline-none"
                         value={app.appliedAt ? new Date(app.appliedAt).toISOString().split('T')[0] : ''}
                         onChange={(e) => {
                           const dateVal = e.target.value;
@@ -441,7 +441,7 @@ export default function Applications() {
                     {/* Status Tag Pill Selector */}
                     <td className="p-4">
                       <select
-                        className={`px-2 py-1 rounded-lg text-[10px] font-bold border ${getStatusBadgeStyle(app.status)} outline-none cursor-pointer focus:border-purple-500 transition-colors w-28 bg-black/40`}
+                        className={`px-2 py-1 rounded-lg text-[10px] font-bold border ${getStatusBadgeStyle(app.status)} outline-none cursor-pointer focus:border-white transition-colors w-28 bg-black/40`}
                         value={app.status}
                         onChange={(e) => {
                           const nextStatus = e.target.value as ApplicationStatus;
@@ -465,7 +465,7 @@ export default function Applications() {
                     <td className="p-4">
                       <input
                         type="text"
-                        className="w-full bg-transparent hover:bg-white/5 focus:bg-muted border-0 focus:border border-purple-500/20 px-2 py-1 rounded text-xs text-gray-300 placeholder-gray-600 focus:outline-none truncate"
+                        className="w-full bg-transparent hover:bg-white/5 focus:bg-muted border-0 focus:border border-white/20 px-2 py-1 rounded text-xs text-gray-300 placeholder-gray-600 focus:outline-none truncate"
                         placeholder="Add quick notes..."
                         defaultValue={app.notes || ''}
                         onBlur={(e) => {
@@ -489,7 +489,7 @@ export default function Applications() {
                           <button
                             disabled={autofillMutation.isPending && autofillMutation.variables === app.id}
                             onClick={() => autofillMutation.mutate(app.id)}
-                            className="p-1.5 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/20 rounded-lg transition-colors disabled:opacity-50 flex items-center"
+                            className="p-1.5 bg-white/10 hover:bg-white/15 text-white border border-white/15 rounded-lg transition-colors disabled:opacity-50 flex items-center"
                             title="Autofill Job Form"
                           >
                             {autofillMutation.isPending && autofillMutation.variables === app.id ? (
@@ -558,7 +558,7 @@ export default function Applications() {
           <div className="glass-panel p-6 rounded-2xl border border-white/10 shadow-2xl relative max-w-lg w-full space-y-4 z-10 animate-scale-in">
             <div className="flex justify-between items-center border-b border-white/5 pb-3">
               <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                <Plus className="w-5 h-5 text-purple-400" />
+                <Plus className="w-5 h-5 text-white" />
                 Add Job Application by Link
               </h2>
               <button 
@@ -582,7 +582,7 @@ export default function Applications() {
                   type="url"
                   placeholder="https://www.linkedin.com/jobs/view/123..."
                   className={`w-full p-2.5 bg-muted border rounded-xl text-white focus:outline-none focus:ring-1 transition-all text-xs ${
-                    errors.url ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-card-border focus:border-purple-500 focus:ring-purple-500'
+                    errors.url ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-card-border focus:border-white focus:ring-white/20'
                   }`}
                   {...register('url', {
                     onChange: (e) => {
@@ -609,7 +609,7 @@ export default function Applications() {
                     type="text"
                     placeholder="e.g. Frontend Engineer"
                     className={`w-full p-2.5 bg-muted border rounded-xl text-white focus:outline-none focus:ring-1 transition-all text-xs ${
-                      errors.title ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-card-border focus:border-purple-500 focus:ring-purple-500'
+                      errors.title ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-card-border focus:border-white focus:ring-white/20'
                     }`}
                     {...register('title')}
                   />
@@ -623,7 +623,7 @@ export default function Applications() {
                     type="text"
                     placeholder="e.g. Google"
                     className={`w-full p-2.5 bg-muted border rounded-xl text-white focus:outline-none focus:ring-1 transition-all text-xs ${
-                      errors.company ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-card-border focus:border-purple-500 focus:ring-purple-500'
+                      errors.company ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-card-border focus:border-white focus:ring-white/20'
                     }`}
                     {...register('company')}
                   />
@@ -639,14 +639,14 @@ export default function Applications() {
                   <input
                     type="text"
                     placeholder="e.g. Bangalore, Remote"
-                    className="w-full p-2.5 bg-muted border border-card-border rounded-xl text-white focus:outline-none focus:border-purple-500 text-xs"
+                    className="w-full p-2.5 bg-muted border border-card-border rounded-xl text-white focus:outline-none focus:border-white text-xs"
                     {...register('location')}
                   />
                 </div>
                 <div>
                   <label className="block text-gray-400 font-semibold mb-1">Status</label>
                   <select
-                    className="w-full p-2.5 bg-muted border border-card-border rounded-xl text-white focus:outline-none focus:border-purple-500 text-xs"
+                    className="w-full p-2.5 bg-muted border border-card-border rounded-xl text-white focus:outline-none focus:border-white text-xs"
                     {...register('status')}
                   >
                     {STATUS_OPTIONS.map((opt) => (
@@ -663,7 +663,7 @@ export default function Applications() {
                   <label className="block text-gray-400 font-semibold mb-1">Applied Date</label>
                   <input
                     type="date"
-                    className="w-full p-2.5 bg-muted border border-card-border rounded-xl text-white focus:outline-none focus:border-purple-500 text-xs font-sans"
+                    className="w-full p-2.5 bg-muted border border-card-border rounded-xl text-white focus:outline-none focus:border-white text-xs font-sans"
                     {...register('appliedAt')}
                   />
                 </div>
@@ -674,7 +674,7 @@ export default function Applications() {
                 <input
                   type="text"
                   placeholder="e.g. Referred by contact, follow up next Monday"
-                  className="w-full p-2.5 bg-muted border border-card-border rounded-xl text-white focus:outline-none focus:border-purple-500 text-xs"
+                  className="w-full p-2.5 bg-muted border border-card-border rounded-xl text-white focus:outline-none focus:border-white text-xs"
                   {...register('notes')}
                 />
               </div>
@@ -684,7 +684,7 @@ export default function Applications() {
                 <textarea
                   rows={4}
                   placeholder="Paste details of the role to run instant AI matching..."
-                  className="w-full p-2.5 bg-muted border border-card-border rounded-xl text-white focus:outline-none focus:border-purple-500 text-xs font-sans"
+                  className="w-full p-2.5 bg-muted border border-card-border rounded-xl text-white focus:outline-none focus:border-white text-xs font-sans"
                   {...register('description')}
                 />
               </div>
@@ -700,7 +700,7 @@ export default function Applications() {
                 <button
                   type="submit"
                   disabled={addByUrlMutation.isPending}
-                  className="px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold flex items-center gap-1 disabled:opacity-50"
+                  className="px-5 py-2 bg-white hover:bg-neutral-200 text-black rounded-xl font-bold flex items-center gap-1 disabled:opacity-50"
                 >
                   {addByUrlMutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                   Add Job
@@ -744,10 +744,10 @@ export default function Applications() {
             <div className="overflow-y-auto py-4 space-y-6 text-xs leading-relaxed flex-1">
               {/* Match Card If Available */}
               {selectedApp.job.matchScore !== undefined && selectedApp.job.matchScore !== null && (
-                <div className="bg-purple-950/10 border border-purple-500/20 p-4 rounded-xl space-y-3">
+                <div className="bg-white/5 border border-white/10 p-4 rounded-xl space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="font-bold text-white text-sm flex items-center gap-1.5">
-                      <Target className="w-4 h-4 text-purple-400" />
+                      <Target className="w-4 h-4 text-white" />
                       Resume Match Analysis
                     </span>
                     <span className={`px-2.5 py-1 rounded-full border text-xs font-bold ${getScoreBadgeClass(selectedApp.job.matchScore)}`}>
@@ -758,7 +758,7 @@ export default function Applications() {
                   {selectedApp.job.matchDetails && (
                     <div className="space-y-3 pt-2 text-gray-300">
                       <div>
-                        <span className="block text-[10px] font-semibold text-purple-400 mb-1">Matched Tech Stack</span>
+                        <span className="block text-[10px] font-semibold text-neutral-300 mb-1">Matched Tech Stack</span>
                         <div className="flex flex-wrap gap-1.5">
                           {(selectedApp.job.matchDetails.matchedSkills || []).map((skill: string, idx: number) => (
                             <span key={idx} className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-lg text-[10px] font-medium">
@@ -772,7 +772,7 @@ export default function Applications() {
                       </div>
 
                       <div>
-                        <span className="block text-[10px] font-semibold text-purple-400 mb-1">Missing Stack (Recommended to add)</span>
+                        <span className="block text-[10px] font-semibold text-neutral-300 mb-1">Missing Stack (Recommended to add)</span>
                         <div className="flex flex-wrap gap-1.5">
                           {(selectedApp.job.matchDetails.missingSkills || []).map((skill: string, idx: number) => (
                             <span key={idx} className="bg-red-500/10 border border-red-500/20 text-red-400 px-2 py-0.5 rounded-lg text-[10px] font-medium">
@@ -786,7 +786,7 @@ export default function Applications() {
                       </div>
 
                       <div className="border-t border-white/5 pt-2">
-                        <span className="block text-[10px] font-semibold text-purple-400 mb-0.5">Scout AI Match Recommendation</span>
+                        <span className="block text-[10px] font-semibold text-neutral-300 mb-0.5">Scout AI Match Recommendation</span>
                         <p className="text-gray-300 leading-normal font-sans italic">{selectedApp.job.matchDetails.recommendation}</p>
                       </div>
                     </div>
@@ -798,7 +798,7 @@ export default function Applications() {
               <div className="space-y-1">
                 <span className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">Application Notes</span>
                 <textarea
-                  className="w-full p-2.5 bg-muted border border-card-border rounded-xl text-xs text-white focus:outline-none focus:border-purple-500 font-sans"
+                  className="w-full p-2.5 bg-muted border border-card-border rounded-xl text-xs text-white focus:outline-none focus:border-white font-sans"
                   rows={3}
                   defaultValue={selectedApp.notes || ''}
                   placeholder="Enter details about interview steps, key contacts, or links..."
@@ -839,7 +839,7 @@ export default function Applications() {
                 </a>
                 <button
                   onClick={() => setSelectedApp(null)}
-                  className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold"
+                  className="px-4 py-2 bg-white hover:bg-neutral-200 text-black rounded-xl font-bold"
                 >
                   Close
                 </button>

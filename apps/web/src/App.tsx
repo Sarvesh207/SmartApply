@@ -12,6 +12,7 @@ import JobDetails from './pages/JobDetails';
 import ResumeManager from './pages/ResumeManager';
 import Applications from './pages/Applications';
 import Settings from './pages/Settings';
+import LandingPage from './pages/LandingPage';
 
 // Components
 import Navbar from './components/Navbar';
@@ -34,23 +35,23 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 // Guard component to block auth pages if logged in
 function PublicRoute({ children }: { children: React.ReactNode }) {
   const token = useAuthStore(state => state.token);
-  return token ? <Navigate to="/" replace /> : <>{children}</>;
+  return token ? <Navigate to="/dashboard" replace /> : <>{children}</>;
 }
 
 // Structure layout for private dashboard pages
 function AppLayout() {
   return (
-    <div className="flex min-h-screen bg-slate-950">
+    <div className="flex min-h-screen bg-black">
       <Navbar />
       <main className="flex-1 overflow-y-auto max-h-screen">
         <Routes>
-          <Route path="/" element={<Dashboard />} />
+          <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/jobs" element={<Jobs />} />
           <Route path="/jobs/:id" element={<JobDetails />} />
           <Route path="/resume" element={<ResumeManager />} />
           <Route path="/applications" element={<Applications />} />
           <Route path="/settings" element={<Settings />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </main>
     </div>
@@ -64,6 +65,9 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <Routes>
+          {/* Public Landing page */}
+          <Route path="/" element={<LandingPage />} />
+
           {/* Public Authentication routes */}
           <Route 
             path="/login" 
@@ -98,7 +102,7 @@ export default function App() {
         toastOptions={{
           className: 'glass-panel border border-white/10 text-white',
           style: {
-            background: 'rgba(15, 23, 42, 0.95)',
+            background: 'rgba(10, 10, 10, 0.95)',
             backdropFilter: 'blur(8px)',
             color: '#fff',
             fontSize: '13px',

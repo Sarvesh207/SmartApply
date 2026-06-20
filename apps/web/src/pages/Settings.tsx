@@ -83,7 +83,7 @@ export default function Settings() {
 
       <div className="glass-panel p-8 rounded-2xl border border-white/5 shadow-xl">
         <div className="flex items-center gap-2 mb-6 border-b border-white/5 pb-4">
-          <Cog className="w-5 h-5 text-purple-400" />
+          <Cog className="w-5 h-5 text-neutral-400" />
           <h2 className="text-lg font-semibold text-white">Autofill Profile Presets</h2>
         </div>
 
@@ -96,7 +96,7 @@ export default function Settings() {
                 <input
                   type="text"
                   className={`w-full pl-9 pr-4 py-2.5 bg-muted border rounded-xl text-white text-sm focus:outline-none focus:ring-1 transition-all ${
-                    errors.fullName ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-card-border focus:border-purple-500 focus:ring-purple-500'
+                    errors.fullName ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-card-border focus:border-white focus:ring-white/20'
                   }`}
                   {...register('fullName')}
                 />
@@ -113,7 +113,7 @@ export default function Settings() {
                 <input
                   type="text"
                   className={`w-full pl-9 pr-4 py-2.5 bg-muted border rounded-xl text-white text-sm focus:outline-none focus:ring-1 transition-all ${
-                    errors.phone ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-card-border focus:border-purple-500 focus:ring-purple-500'
+                    errors.phone ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-card-border focus:border-white focus:ring-white/20'
                   }`}
                   {...register('phone')}
                 />
@@ -130,7 +130,7 @@ export default function Settings() {
               <input
                 type="text"
                 className={`w-full px-4 py-2.5 bg-muted border rounded-xl text-white text-sm focus:outline-none focus:ring-1 transition-all ${
-                  errors.location ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-card-border focus:border-purple-500 focus:ring-purple-500'
+                  errors.location ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-card-border focus:border-white focus:ring-white/20'
                 }`}
                 {...register('location')}
               />
@@ -145,7 +145,7 @@ export default function Settings() {
                 type="number"
                 min="0"
                 className={`w-full px-4 py-2.5 bg-muted border rounded-xl text-white text-sm focus:outline-none focus:ring-1 transition-all ${
-                  errors.yearsOfExperience ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-card-border focus:border-purple-500 focus:ring-purple-500'
+                  errors.yearsOfExperience ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-card-border focus:border-white focus:ring-white/20'
                 }`}
                 {...register('yearsOfExperience', { valueAsNumber: true })}
               />
@@ -162,7 +162,7 @@ export default function Settings() {
               <input
                 type="text"
                 className={`w-full pl-9 pr-4 py-2.5 bg-muted border rounded-xl text-white text-sm focus:outline-none focus:ring-1 transition-all ${
-                  errors.portfolioUrl ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-card-border focus:border-purple-500 focus:ring-purple-500'
+                  errors.portfolioUrl ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-card-border focus:border-white focus:ring-white/20'
                 }`}
                 placeholder="https://yourportfolio.com"
                 {...register('portfolioUrl')}
@@ -181,7 +181,7 @@ export default function Settings() {
                 <input
                   type="text"
                   className={`w-full pl-9 pr-4 py-2.5 bg-muted border rounded-xl text-white text-sm focus:outline-none focus:ring-1 transition-all ${
-                    errors.githubUrl ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-card-border focus:border-purple-500 focus:ring-purple-500'
+                    errors.githubUrl ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-card-border focus:border-white focus:ring-white/20'
                   }`}
                   {...register('githubUrl')}
                 />
@@ -198,7 +198,7 @@ export default function Settings() {
                 <input
                   type="text"
                   className={`w-full pl-9 pr-4 py-2.5 bg-muted border rounded-xl text-white text-sm focus:outline-none focus:ring-1 transition-all ${
-                    errors.linkedinUrl ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-card-border focus:border-purple-500 focus:ring-purple-500'
+                    errors.linkedinUrl ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-card-border focus:border-white focus:ring-white/20'
                   }`}
                   {...register('linkedinUrl')}
                 />

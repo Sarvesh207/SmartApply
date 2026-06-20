@@ -138,7 +138,7 @@ export default function Jobs() {
         <button
           disabled={triggerScrapeMutation.isPending}
           onClick={() => triggerScrapeMutation.mutate()}
-          className="py-2.5 px-4 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 text-purple-400 rounded-xl font-bold text-xs flex items-center gap-2 hover:glow-hover transition-all disabled:opacity-50 shrink-0"
+          className="py-2.5 px-4 bg-white/10 hover:bg-white/15 border border-white/15 text-white rounded-xl font-bold text-xs flex items-center gap-2 hover:glow-hover transition-all disabled:opacity-50 shrink-0"
         >
           {triggerScrapeMutation.isPending ? (
             <Loader2 className="w-4 h-4 animate-spin" />
@@ -155,7 +155,7 @@ export default function Jobs() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
           <input
             type="text"
-            className="w-full pl-9 pr-4 py-2 bg-muted border border-card-border rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 text-sm"
+            className="w-full pl-9 pr-4 py-2 bg-muted border border-card-border rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-white text-sm"
             placeholder="Search title, company, skills..."
             {...register('search')}
           />
@@ -165,7 +165,7 @@ export default function Jobs() {
           <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
           <input
             type="text"
-            className="w-full pl-9 pr-4 py-2 bg-muted border border-card-border rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 text-sm"
+            className="w-full pl-9 pr-4 py-2 bg-muted border border-card-border rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-white text-sm"
             placeholder="Location (e.g. Remote, Bangalore)"
             {...register('location')}
           />
@@ -173,7 +173,7 @@ export default function Jobs() {
 
         <div>
           <select
-            className="w-full px-4 py-2 bg-muted border border-card-border rounded-xl text-white focus:outline-none focus:border-purple-500 text-sm"
+            className="w-full px-4 py-2 bg-muted border border-card-border rounded-xl text-white focus:outline-none focus:border-white text-sm"
             {...register('source')}
           >
             <option value="">All Sources</option>
@@ -194,7 +194,7 @@ export default function Jobs() {
       {/* Job list */}
       {isLoading ? (
         <div className="flex justify-center py-20">
-          <Loader2 className="w-8 h-8 text-purple-500 animate-spin" />
+          <Loader2 className="w-8 h-8 text-white animate-spin" />
         </div>
       ) : error || !data || data.jobs.length === 0 ? (
         <div className="text-center py-20 glass-panel border border-white/5 rounded-2xl">
@@ -218,7 +218,7 @@ export default function Jobs() {
                   <div className="space-y-1">
                     <h2 
                       onClick={() => navigate(`/jobs/${job.id}`)}
-                      className="text-lg font-bold text-white hover:text-purple-400 cursor-pointer transition-colors"
+                      className="text-lg font-bold text-white hover:text-neutral-300 cursor-pointer transition-colors"
                     >
                       {job.title}
                     </h2>
@@ -256,7 +256,7 @@ export default function Jobs() {
                     <button
                       disabled={matchMutation.isPending && matchMutation.variables === job.id}
                       onClick={() => matchMutation.mutate(job.id)}
-                      className="py-1.5 px-3 bg-purple-500/10 border border-purple-500/20 text-purple-400 rounded-full text-xs font-semibold flex items-center gap-1.5 hover:bg-purple-500/25 transition-all disabled:opacity-50"
+                      className="py-1.5 px-3 bg-white/10 border border-white/15 text-white rounded-full text-xs font-semibold flex items-center gap-1.5 hover:bg-white/20 transition-all disabled:opacity-50"
                     >
                       {matchMutation.isPending && matchMutation.variables === job.id ? (
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />

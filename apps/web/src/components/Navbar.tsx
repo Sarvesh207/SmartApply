@@ -21,7 +21,7 @@ export default function Navbar() {
   };
 
   const navItems = [
-    { to: '/', label: 'Dashboard', icon: LayoutDashboard },
+    { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { to: '/jobs', label: 'Job Board', icon: Briefcase },
     { to: '/resume', label: 'Resume Manager', icon: FileText },
     { to: '/applications', label: 'Applications Board', icon: KanbanSquare },
@@ -33,12 +33,12 @@ export default function Navbar() {
       <div className="p-6 space-y-8">
         {/* Brand Header */}
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 gradient-bg rounded-xl flex items-center justify-center shadow-lg shadow-purple-500/25">
+          <div className="w-10 h-10 gradient-bg rounded-xl flex items-center justify-center border border-white/10">
             <Target className="w-5.5 h-5.5 text-white" />
           </div>
           <div>
             <span className="font-extrabold text-lg text-white leading-none block">SmartApply</span>
-            <span className="text-[10px] text-purple-400 font-semibold tracking-wider uppercase">Platform</span>
+            <span className="text-[10px] text-neutral-400 font-semibold tracking-wider uppercase">Platform</span>
           </div>
         </div>
 
@@ -53,7 +53,7 @@ export default function Navbar() {
                 className={({ isActive }) =>
                   `flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
                     isActive 
-                      ? 'bg-purple-500/10 text-purple-400 border border-purple-500/15' 
+                      ? 'bg-white/10 text-white border border-white/15' 
                       : 'text-muted-foreground hover:text-white hover:bg-white/5 border border-transparent'
                   }`
                 }

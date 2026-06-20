@@ -243,7 +243,7 @@ export default function ResumeManager() {
           <button
             disabled={triggerScrapeMutation.isPending}
             onClick={() => triggerScrapeMutation.mutate()}
-            className="py-2.5 px-4 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 text-purple-400 rounded-xl font-bold text-xs flex items-center gap-2 hover:glow-hover transition-all disabled:opacity-50 shrink-0"
+            className="py-2.5 px-4 bg-white/10 hover:bg-white/20 border border-white/20 text-white rounded-xl font-bold text-xs flex items-center gap-2 hover:glow-hover transition-all disabled:opacity-50 shrink-0"
           >
             {triggerScrapeMutation.isPending ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -269,7 +269,7 @@ export default function ResumeManager() {
             )}
 
             <form onSubmit={handleSubmit(handleUploadSubmit)} className="space-y-4">
-              <div className="border-2 border-dashed border-white/10 hover:border-purple-500/40 rounded-xl p-6 text-center cursor-pointer transition-colors relative">
+              <div className="border-2 border-dashed border-white/10 hover:border-white/30 rounded-xl p-6 text-center cursor-pointer transition-colors relative">
                 <input 
                   type="file" 
                   accept=".pdf"
@@ -305,7 +305,7 @@ export default function ResumeManager() {
         <div className="md:col-span-2 space-y-6">
           {isLoading ? (
             <div className="flex justify-center py-20 glass-panel rounded-2xl border border-white/5 shadow-xl">
-              <Loader2 className="w-8 h-8 text-purple-500 animate-spin" />
+              <Loader2 className="w-8 h-8 text-white animate-spin" />
             </div>
           ) : error || !resume ? (
             <div className="text-center py-20 glass-panel border border-white/5 rounded-2xl shadow-xl space-y-4">
@@ -335,10 +335,10 @@ export default function ResumeManager() {
                     <button
                       disabled={saveMutation.isPending}
                       onClick={handleSaveProfile}
-                      className="py-1 px-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1 transition-all"
+                      className="py-1 px-3 bg-white text-black hover:bg-neutral-200 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all"
                     >
                       {saveMutation.isPending ? (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-black" />
                       ) : (
                         <Save className="w-3.5 h-3.5" />
                       )}
@@ -348,7 +348,7 @@ export default function ResumeManager() {
                 ) : (
                   <button
                     onClick={startEditing}
-                    className="py-1 px-3 bg-white/5 hover:bg-white/10 border border-white/5 text-purple-400 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all"
+                    className="py-1 px-3 bg-white/5 hover:bg-white/10 border border-white/5 text-white rounded-lg text-xs font-semibold flex items-center gap-1 transition-all"
                   >
                     <Edit2 className="w-3.5 h-3.5" />
                     Edit Profile
@@ -367,7 +367,7 @@ export default function ResumeManager() {
                       onClick={() => setActiveTab(tab.id)}
                       className={`flex items-center gap-1.5 px-4 py-2 border-b-2 text-xs font-semibold whitespace-nowrap transition-all ${
                         isActive 
-                          ? 'border-purple-500 text-purple-400' 
+                          ? 'border-white text-white' 
                           : 'border-transparent text-muted-foreground hover:text-white'
                       }`}
                     >
@@ -387,7 +387,7 @@ export default function ResumeManager() {
                       <div className="space-y-2">
                         <label className="text-[10px] text-muted-foreground">List your technical skills separated by commas</label>
                         <textarea
-                          className="w-full p-3 bg-muted border border-card-border rounded-xl text-xs text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 font-sans"
+                          className="w-full p-3 bg-muted border border-card-border rounded-xl text-xs text-white placeholder-gray-500 focus:outline-none focus:border-white font-sans"
                           rows={6}
                           value={editedSkills}
                           onChange={e => setEditedSkills(e.target.value)}
@@ -398,7 +398,7 @@ export default function ResumeManager() {
                         {resume.skills.map((skill, idx) => (
                           <span 
                             key={idx} 
-                            className="bg-purple-500/10 text-purple-400 border border-purple-500/20 px-3 py-1 rounded-xl text-xs font-medium"
+                            className="bg-white/10 text-white border border-white/20 px-3 py-1 rounded-xl text-xs font-medium"
                           >
                             {skill}
                           </span>
@@ -415,7 +415,7 @@ export default function ResumeManager() {
                       {isEditing && (
                         <button
                           onClick={addExperience}
-                          className="py-1 px-2.5 bg-purple-600/15 border border-purple-500/25 text-purple-400 rounded-lg text-[10px] font-bold flex items-center gap-1 hover:bg-purple-600/30 transition-all"
+                          className="py-1 px-2.5 bg-white/5 border border-white/10 text-white rounded-lg text-[10px] font-bold flex items-center gap-1 hover:bg-white/10 transition-all"
                         >
                           <Plus className="w-3 h-3" /> Add Role
                         </button>
@@ -439,7 +439,7 @@ export default function ResumeManager() {
                                 <label className="text-[10px] text-gray-400 block mb-1">Role Title</label>
                                 <input
                                   type="text"
-                                  className="w-full px-3 py-1.5 bg-muted border border-card-border rounded-lg text-xs text-white focus:outline-none focus:border-purple-500"
+                                  className="w-full px-3 py-1.5 bg-muted border border-card-border rounded-lg text-xs text-white focus:outline-none focus:border-white"
                                   value={exp.role}
                                   onChange={e => updateExperience(idx, 'role', e.target.value)}
                                 />
@@ -448,7 +448,7 @@ export default function ResumeManager() {
                                 <label className="text-[10px] text-gray-400 block mb-1">Company</label>
                                 <input
                                   type="text"
-                                  className="w-full px-3 py-1.5 bg-muted border border-card-border rounded-lg text-xs text-white focus:outline-none focus:border-purple-500"
+                                  className="w-full px-3 py-1.5 bg-muted border border-card-border rounded-lg text-xs text-white focus:outline-none focus:border-white"
                                   value={exp.company}
                                   onChange={e => updateExperience(idx, 'company', e.target.value)}
                                 />
@@ -460,7 +460,7 @@ export default function ResumeManager() {
                                 <label className="text-[10px] text-gray-400 block mb-1">Duration (e.g. 2021 - 2023)</label>
                                 <input
                                   type="text"
-                                  className="w-full px-3 py-1.5 bg-muted border border-card-border rounded-lg text-xs text-white focus:outline-none focus:border-purple-500"
+                                  className="w-full px-3 py-1.5 bg-muted border border-card-border rounded-lg text-xs text-white focus:outline-none focus:border-white"
                                   value={exp.duration}
                                   onChange={e => updateExperience(idx, 'duration', e.target.value)}
                                 />
@@ -470,7 +470,7 @@ export default function ResumeManager() {
                             <div>
                               <label className="text-[10px] text-gray-400 block mb-1">Description</label>
                               <textarea
-                                className="w-full p-3 bg-muted border border-card-border rounded-lg text-xs text-white focus:outline-none focus:border-purple-500 font-sans"
+                                className="w-full p-3 bg-muted border border-card-border rounded-lg text-xs text-white focus:outline-none focus:border-white font-sans"
                                 rows={3}
                                 value={exp.description}
                                 onChange={e => updateExperience(idx, 'description', e.target.value)}
@@ -481,10 +481,10 @@ export default function ResumeManager() {
                       </div>
                     ) : (
                       resume.experience.map((exp, idx) => (
-                        <div key={idx} className="border-l-2 border-purple-500/30 pl-4 space-y-1 relative">
-                          <div className="w-3 h-3 rounded-full bg-purple-500 absolute -left-[7px] top-1.5"></div>
+                        <div key={idx} className="border-l-2 border-white/10 pl-4 space-y-1 relative">
+                          <div className="w-3 h-3 rounded-full bg-white absolute -left-[7px] top-1.5"></div>
                           <h4 className="text-sm font-bold text-white">{exp.role}</h4>
-                          <div className="text-xs text-purple-400 font-semibold">{exp.company} <span className="text-muted-foreground">({exp.duration})</span></div>
+                          <div className="text-xs text-neutral-300 font-semibold">{exp.company} <span className="text-muted-foreground">({exp.duration})</span></div>
                           <p className="text-xs text-gray-300 leading-relaxed font-sans">{exp.description}</p>
                         </div>
                       ))
@@ -499,7 +499,7 @@ export default function ResumeManager() {
                       {isEditing && (
                         <button
                           onClick={addProject}
-                          className="py-1 px-2.5 bg-purple-600/15 border border-purple-500/25 text-purple-400 rounded-lg text-[10px] font-bold flex items-center gap-1 hover:bg-purple-600/30 transition-all"
+                          className="py-1 px-2.5 bg-white/5 border border-white/10 text-white rounded-lg text-[10px] font-bold flex items-center gap-1 hover:bg-white/10 transition-all"
                         >
                           <Plus className="w-3 h-3" /> Add Project
                         </button>
@@ -522,7 +522,7 @@ export default function ResumeManager() {
                               <label className="text-[10px] text-gray-400 block mb-1">Project Name</label>
                               <input
                                 type="text"
-                                className="w-full px-3 py-1.5 bg-muted border border-card-border rounded-lg text-xs text-white focus:outline-none focus:border-purple-500"
+                                className="w-full px-3 py-1.5 bg-muted border border-card-border rounded-lg text-xs text-white focus:outline-none focus:border-white"
                                 value={proj.name}
                                 onChange={e => updateProject(idx, 'name', e.target.value)}
                               />
@@ -531,7 +531,7 @@ export default function ResumeManager() {
                             <div>
                               <label className="text-[10px] text-gray-400 block mb-1">Description</label>
                               <textarea
-                                className="w-full p-3 bg-muted border border-card-border rounded-lg text-xs text-white focus:outline-none focus:border-purple-500 font-sans"
+                                className="w-full p-3 bg-muted border border-card-border rounded-lg text-xs text-white focus:outline-none focus:border-white font-sans"
                                 rows={3}
                                 value={proj.description}
                                 onChange={e => updateProject(idx, 'description', e.target.value)}
@@ -542,7 +542,7 @@ export default function ResumeManager() {
                               <label className="text-[10px] text-gray-400 block mb-1">Technologies (comma separated)</label>
                               <input
                                 type="text"
-                                className="w-full px-3 py-1.5 bg-muted border border-card-border rounded-lg text-xs text-white focus:outline-none focus:border-purple-500"
+                                className="w-full px-3 py-1.5 bg-muted border border-card-border rounded-lg text-xs text-white focus:outline-none focus:border-white"
                                 value={proj.technologies.join(', ')}
                                 onChange={e => updateProject(idx, 'technologies', e.target.value)}
                               />
@@ -579,7 +579,7 @@ export default function ResumeManager() {
                       {isEditing && (
                         <button
                           onClick={addEducation}
-                          className="py-1 px-2.5 bg-purple-600/15 border border-purple-500/25 text-purple-400 rounded-lg text-[10px] font-bold flex items-center gap-1 hover:bg-purple-600/30 transition-all"
+                          className="py-1 px-2.5 bg-white/5 border border-white/10 text-white rounded-lg text-[10px] font-bold flex items-center gap-1 hover:bg-white/10 transition-all"
                         >
                           <Plus className="w-3 h-3" /> Add Edu
                         </button>
@@ -603,7 +603,7 @@ export default function ResumeManager() {
                                 <label className="text-[10px] text-gray-400 block mb-1">Degree Title</label>
                                 <input
                                   type="text"
-                                  className="w-full px-3 py-1.5 bg-muted border border-card-border rounded-lg text-xs text-white focus:outline-none focus:border-purple-500"
+                                  className="w-full px-3 py-1.5 bg-muted border border-card-border rounded-lg text-xs text-white focus:outline-none focus:border-white"
                                   value={edu.degree}
                                   onChange={e => updateEducation(idx, 'degree', e.target.value)}
                                 />
@@ -612,7 +612,7 @@ export default function ResumeManager() {
                                 <label className="text-[10px] text-gray-400 block mb-1">Institution</label>
                                 <input
                                   type="text"
-                                  className="w-full px-3 py-1.5 bg-muted border border-card-border rounded-lg text-xs text-white focus:outline-none focus:border-purple-500"
+                                  className="w-full px-3 py-1.5 bg-muted border border-card-border rounded-lg text-xs text-white focus:outline-none focus:border-white"
                                   value={edu.institution}
                                   onChange={e => updateEducation(idx, 'institution', e.target.value)}
                                 />
@@ -624,7 +624,7 @@ export default function ResumeManager() {
                                 <label className="text-[10px] text-gray-400 block mb-1">Graduation Year</label>
                                 <input
                                   type="text"
-                                  className="w-full px-3 py-1.5 bg-muted border border-card-border rounded-lg text-xs text-white focus:outline-none focus:border-purple-500"
+                                  className="w-full px-3 py-1.5 bg-muted border border-card-border rounded-lg text-xs text-white focus:outline-none focus:border-white"
                                   value={edu.graduationYear}
                                   onChange={e => updateEducation(idx, 'graduationYear', e.target.value)}
                                 />
@@ -635,10 +635,10 @@ export default function ResumeManager() {
                       </div>
                     ) : (
                       resume.education.map((edu, idx) => (
-                        <div key={idx} className="border-l-2 border-indigo-500/30 pl-4 space-y-1 relative">
-                          <div className="w-3 h-3 rounded-full bg-indigo-500 absolute -left-[7px] top-1.5"></div>
+                        <div key={idx} className="border-l-2 border-white/10 pl-4 space-y-1 relative">
+                          <div className="w-3 h-3 rounded-full bg-white absolute -left-[7px] top-1.5"></div>
                           <h4 className="text-sm font-bold text-white">{edu.degree}</h4>
-                          <div className="text-xs text-indigo-400 font-semibold">{edu.institution}</div>
+                          <div className="text-xs text-neutral-300 font-semibold">{edu.institution}</div>
                           <p className="text-xs text-muted-foreground">Graduation Year: {edu.graduationYear}</p>
                         </div>
                       ))

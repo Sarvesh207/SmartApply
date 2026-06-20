@@ -23,7 +23,7 @@ export default function Dashboard() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-8 h-8 text-purple-500 animate-spin" />
+        <Loader2 className="w-8 h-8 text-white animate-spin" />
       </div>
     );
   }
@@ -38,8 +38,8 @@ export default function Dashboard() {
 
   // Formatting chart data
   const chartData = [
-    { name: 'Saved', value: stats.statusCounts.Saved, color: '#a78bfa' },
-    { name: 'Applied', value: stats.statusCounts.Applied, color: '#6366f1' },
+    { name: 'Saved', value: stats.statusCounts.Saved, color: '#a3a3a3' },
+    { name: 'Applied', value: stats.statusCounts.Applied, color: '#e5e5e5' },
     { name: 'Interview', value: stats.statusCounts.Interview, color: '#10b981' },
     { name: 'Offer', value: stats.statusCounts.Offer, color: '#f59e0b' },
     { name: 'Rejected', value: stats.statusCounts.Rejected, color: '#ef4444' },
@@ -52,24 +52,24 @@ export default function Dashboard() {
       value: stats.jobsScraped,
       description: 'Total jobs fetched from sources',
       icon: Briefcase,
-      color: 'from-blue-600/20 to-indigo-600/20',
-      iconColor: 'text-blue-400'
+      color: 'from-neutral-700/20 to-gray-700/20',
+      iconColor: 'text-gray-400'
     },
     {
       title: 'Jobs Matched',
       value: stats.jobsMatched,
       description: 'Jobs matched with your resume',
       icon: Target,
-      color: 'from-purple-600/20 to-pink-600/20',
-      iconColor: 'text-purple-400'
+      color: 'from-neutral-600/20 to-gray-600/20',
+      iconColor: 'text-neutral-400'
     },
     {
       title: 'Applications Sent',
       value: stats.applicationsSent,
       description: 'Jobs applied to overall',
       icon: Send,
-      color: 'from-indigo-600/20 to-violet-600/20',
-      iconColor: 'text-indigo-400'
+      color: 'from-gray-600/20 to-neutral-600/20',
+      iconColor: 'text-gray-400'
     },
     {
       title: 'Interview Rate',
@@ -123,7 +123,7 @@ export default function Dashboard() {
         {/* Kanban Phase Funnel Chart */}
         <div className="lg:col-span-2 glass-panel p-6 rounded-2xl border border-white/5 shadow-xl">
           <div className="flex items-center gap-2 mb-6">
-            <TrendingUp className="w-5 h-5 text-purple-400" />
+            <TrendingUp className="w-5 h-5 text-neutral-400" />
             <h2 className="text-lg font-semibold text-white">Application Pipeline Funnel</h2>
           </div>
           <div className="h-72 w-full">

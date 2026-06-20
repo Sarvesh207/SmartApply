@@ -79,7 +79,7 @@ export default function JobDetails() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-8 h-8 text-purple-500 animate-spin" />
+        <Loader2 className="w-8 h-8 text-white animate-spin" />
       </div>
     );
   }
@@ -153,7 +153,7 @@ export default function JobDetails() {
           <div className="glass-panel p-6 rounded-2xl border border-white/5 shadow-xl space-y-6">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">AI Evaluation</h3>
-              <Sparkles className="w-4 h-4 text-purple-400" />
+              <Sparkles className="w-4 h-4 text-neutral-400" />
             </div>
 
             {job.matchDetails ? (
@@ -217,7 +217,7 @@ export default function JobDetails() {
                 <button
                   disabled={matchMutation.isPending}
                   onClick={() => matchMutation.mutate()}
-                  className="w-full py-2.5 px-4 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 text-purple-400 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all"
+                  className="w-full py-2.5 px-4 bg-white/10 hover:bg-white/15 border border-white/15 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all"
                 >
                   {matchMutation.isPending ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
