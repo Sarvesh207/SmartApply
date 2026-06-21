@@ -27,13 +27,13 @@ const queryClient = new QueryClient({
 });
 
 // Guard component to enforce authentication
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
+export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const token = useAuthStore(state => state.token);
   return token ? <>{children}</> : <Navigate to="/login" replace />;
 }
 
 // Guard component to block auth pages if logged in
-function PublicRoute({ children }: { children: React.ReactNode }) {
+export function PublicRoute({ children }: { children: React.ReactNode }) {
   const token = useAuthStore(state => state.token);
   return token ? <Navigate to="/dashboard" replace /> : <>{children}</>;
 }

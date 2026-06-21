@@ -1,7 +1,16 @@
 import axios from 'axios';
 import { useAuthStore } from '../store/authStore';
 
-export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+// Fallback for Jest/Node environment where import.meta is not available
+const getApiUrl = () => {
+  try {
+    return eval('import.meta.env.VITE_API_URL');
+  } catch {
+    return (globalThis as any).import?.meta?.env?.VITE_API_URL || 'http://localhost:5000';
+  }
+};
+
+export const API_BASE_URL = getApiUrl();
 
 // Create a central axios instance
 export const apiClient = axios.create({
