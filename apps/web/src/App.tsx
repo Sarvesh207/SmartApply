@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuthStore } from './store/authStore';
+import { apiClient } from './utils/api';
+import { Loader2 } from 'lucide-react';
 
 // Pages
 import Login from './pages/Login';
@@ -61,6 +63,30 @@ function AppLayout() {
 import { Toaster } from 'react-hot-toast';
 
 export default function App() {
+  const { setAuth, logout } = useAuthStore();
+  const [loadingSession, setLoadingSession] = useState(true);
+
+  useEffect(() => {
+    apiClient.get('/auth/me')
+      .then((res) => {
+        setAuth('cookie-auth', res.data.user);
+      })
+      .catch(() => {
+        logout();
+      })
+      .finally(() => {
+        setLoadingSession(false);
+      });
+  }, [setAuth, logout]);
+
+  if (loadingSession) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-black text-white">
+        <Loader2 className="w-8 h-8 animate-spin text-neutral-400" />
+      </div>
+    );
+  }
+
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>

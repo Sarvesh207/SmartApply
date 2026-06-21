@@ -9,6 +9,17 @@ jest.mock('react-router-dom', () => ({
   useNavigate: () => mockNavigate,
 }));
 
+jest.mock('../../utils/api', () => {
+  const actual = jest.requireActual('../../utils/api');
+  return {
+    ...actual,
+    apiClient: {
+      ...actual.apiClient,
+      post: jest.fn().mockResolvedValue({ data: { success: true } }),
+    },
+  };
+});
+
 describe('Navbar Component', () => {
   const dummyUser = {
     id: 'user-123',

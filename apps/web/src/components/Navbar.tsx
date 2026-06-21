@@ -1,6 +1,7 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
+import { apiClient } from '../utils/api';
 import { 
   LayoutDashboard, 
   Briefcase, 
@@ -16,6 +17,7 @@ export default function Navbar() {
   const { user, logout } = useAuthStore();
 
   const handleLogout = () => {
+    apiClient.post('/auth/logout').catch(() => {});
     logout();
     navigate('/login');
   };

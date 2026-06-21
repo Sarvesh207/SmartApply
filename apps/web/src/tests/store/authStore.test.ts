@@ -21,18 +21,15 @@ describe('authStore', () => {
     expect(useAuthStore.getState().isAuthenticated()).toBe(false);
   });
 
-  it('should persist token and user to localStorage and state via setAuth()', () => {
+  it('should persist token and user to state via setAuth()', () => {
     useAuthStore.getState().setAuth('dummy-token', dummyUser);
 
     expect(useAuthStore.getState().token).toBe('dummy-token');
     expect(useAuthStore.getState().user).toEqual(dummyUser);
     expect(useAuthStore.getState().isAuthenticated()).toBe(true);
-
-    expect(localStorage.setItem).toHaveBeenCalledWith('sa_token', 'dummy-token');
-    expect(localStorage.setItem).toHaveBeenCalledWith('sa_user', JSON.stringify(dummyUser));
   });
 
-  it('should clear token, user, and localStorage via logout()', () => {
+  it('should clear token and user in state via logout()', () => {
     // Set initial auth state
     useAuthStore.getState().setAuth('dummy-token', dummyUser);
 
@@ -42,30 +39,14 @@ describe('authStore', () => {
     expect(useAuthStore.getState().token).toBeNull();
     expect(useAuthStore.getState().user).toBeNull();
     expect(useAuthStore.getState().isAuthenticated()).toBe(false);
-
-    expect(localStorage.removeItem).toHaveBeenCalledWith('sa_token');
-    expect(localStorage.removeItem).toHaveBeenCalledWith('sa_user');
   });
 
-  it('should initialize from localStorage on import/creation', () => {
-    // Temporarily set items in localStorage mock
-    const originalGetItem = localStorage.getItem;
-    localStorage.getItem = jest.fn((key: string) => {
-      if (key === 'sa_token') return 'saved-token';
-      if (key === 'sa_user') return JSON.stringify(dummyUser);
-      return null;
+  it('should initialize with null values on import/creation', () => {
+    jest.isolateModules(() => {
+      const { useAuthStore: newStore } = require('../../store/authStore');
+      expect(newStore.getState().token).toBeNull();
+      expect(newStore.getState().user).toBeNull();
+      expect(newStore.getState().isAuthenticated()).toBe(false);
     });
-
-    try {
-      // Isolate modules to force re-evaluation of store initialization logic
-      jest.isolateModules(() => {
-        const { useAuthStore: newStore } = require('../../store/authStore');
-        expect(newStore.getState().token).toBe('saved-token');
-        expect(newStore.getState().user).toEqual(JSON.parse(JSON.stringify(dummyUser)));
-        expect(newStore.getState().isAuthenticated()).toBe(true);
-      });
-    } finally {
-      localStorage.getItem = originalGetItem;
-    }
   });
 });

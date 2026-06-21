@@ -15,6 +15,7 @@ export const API_BASE_URL = getApiUrl();
 // Create a central axios instance
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
+  withCredentials: true,
 });
 
 // Central Request Interceptor: Automatically attach the JWT token if available
