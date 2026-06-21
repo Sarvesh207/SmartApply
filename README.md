@@ -105,9 +105,9 @@ npm run db:generate
 You can launch development instances of the frontend, api, and worker concurrently, or individually.
 
 #### Running everything in parallel (Recommended):
-Use `concurrently` (pre-configured) to run all services simultaneously:
+Use the root shortcut to run the API, Web frontend, Worker, and Extension compiler concurrently:
 ```bash
-npx concurrently "npm run api:dev" "npm run web:dev" "npm run worker:dev"
+npm run dev
 ```
 
 #### Running individually:

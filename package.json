@@ -13,6 +13,7 @@
     "apps/extension"
   ],
   "scripts": {
+    "dev": "concurrently -n \"api,web,worker,ext\" -c \"blue,green,magenta,yellow\" \"npm run api:dev\" \"npm run web:dev\" \"npm run worker:dev\" \"npm run extension:dev\"",
     "web:dev": "npm run dev -w apps/web",
     "api:dev": "npm run dev -w apps/api",
     "worker:dev": "npm run dev -w apps/worker",
