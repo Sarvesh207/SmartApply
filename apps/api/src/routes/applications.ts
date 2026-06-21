@@ -90,6 +90,62 @@ router.post('/', authenticateJWT, async (req: AuthenticatedRequest, res: Respons
   }
 });
 
+const updateStatusByUrlSchema = z.object({
+  url: z.string().url(),
+  status: z.enum(['Saved', 'Applied', 'Interview', 'Rejected', 'Offer', 'Expired']),
+});
+
+// PATCH /applications/status-by-url
+router.patch('/status-by-url', authenticateJWT, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { url, status } = updateStatusByUrlSchema.parse(req.body);
+
+    const job = await prisma.job.findUnique({
+      where: { jobUrl: url },
+    });
+
+    if (!job) {
+      return res.status(404).json({ error: 'Job not found in database' });
+    }
+
+    const application = await prisma.application.findUnique({
+      where: {
+        userId_jobId: { userId, jobId: job.id },
+      },
+    });
+
+    if (!application) {
+      return res.status(404).json({ error: 'Application not found for this job' });
+    }
+
+    const updateData: any = { status };
+    if (status === 'Applied' && !application.appliedAt) {
+      updateData.appliedAt = new Date();
+    }
+
+    const updatedApplication = await prisma.application.update({
+      where: { id: application.id },
+      data: updateData,
+      include: {
+        job: true,
+      },
+    });
+
+    res.json(updatedApplication);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: error.errors[0].message });
+    }
+    console.error('Update application status by URL error:', error);
+    res.status(500).json({ error: 'Failed to update application status by URL' });
+  }
+});
+
 // PATCH /applications/:id
 router.patch('/:id', authenticateJWT, async (req: AuthenticatedRequest, res: Response) => {
   try {

@@ -161,3 +161,75 @@ chrome.runtime.onMessage.addListener((
     }
   }
 });
+
+// 7. Auto-detect Expired / Applied Statuses
+const sentUpdates = new Map<string, string>();
+
+function checkApplicationStatus() {
+  const url = window.location.href;
+  const portal = detectPortal();
+  const pageText = document.body.innerText || '';
+
+  const checkAndSend = (status: 'Expired' | 'Applied') => {
+    if (sentUpdates.get(url) === status) return;
+    
+    // Optimistic cache set to prevent repeated requests
+    sentUpdates.set(url, status);
+    
+    console.log(`SmartApply: Detected job is ${status}. Syncing...`);
+    chrome.runtime.sendMessage({
+      type: 'UPDATE_STATUS_BY_URL',
+      url,
+      status
+    }, (response: any) => {
+      if (response && response.success) {
+        console.log(`SmartApply: Successfully synced status to database: ${status}`);
+      } else {
+        console.warn('SmartApply: Sync status failed:', response?.error);
+        // Clear cache entry on failure to permit retries
+        sentUpdates.delete(url);
+      }
+    });
+  };
+
+  // --- A. Detect Expired Status ---
+  if (portal === 'LinkedIn') {
+    const hasClosedText = pageText.includes('No longer accepting applications') || 
+                          document.querySelector('.jobs-details__closed-indicator') !== null ||
+                          document.querySelector('.artdeco-inline-feedback--error')?.textContent?.includes('No longer accepting applications');
+    if (hasClosedText) {
+      checkAndSend('Expired');
+      return;
+    }
+  } else if (portal === 'Indeed') {
+    const hasExpiredText = pageText.includes('This job has expired') || 
+                           document.querySelector('.jobsearch-JobMetadataFooter')?.textContent?.includes('expired');
+    if (hasExpiredText) {
+      checkAndSend('Expired');
+      return;
+    }
+  }
+
+  // --- B. Detect Applied Status ---
+  if (portal === 'LinkedIn') {
+    const modalText = document.querySelector('.artdeco-modal, [role="dialog"]')?.textContent || '';
+    const isSubmitted = modalText.includes('Application submitted') || 
+                        modalText.includes('Your application was sent to') ||
+                        pageText.includes('Application submitted') && document.querySelector('.post-apply-state') !== null;
+    if (isSubmitted) {
+      checkAndSend('Applied');
+      return;
+    }
+  } else if (portal === 'Indeed') {
+    const hasSubmittedText = pageText.includes('Application submitted') || 
+                             document.querySelector('.ia-BasePage-heading')?.textContent?.includes('submitted') ||
+                             window.location.href.includes('indeed.com/apply/congrats');
+    if (hasSubmittedText) {
+      checkAndSend('Applied');
+      return;
+    }
+  }
+}
+
+// Run scanner every 3 seconds
+setInterval(checkApplicationStatus, 3000);

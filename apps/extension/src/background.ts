@@ -61,4 +61,31 @@ chrome.runtime.onMessage.addListener((
       });
     return true;
   }
+
+  if (message.type === 'UPDATE_STATUS_BY_URL') {
+    fetch('http://localhost:5000/applications/status-by-url', {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        url: message.url,
+        status: message.status
+      })
+    })
+      .then(async (response) => {
+        if (response.ok) {
+          const data = await response.json();
+          sendResponse({ success: true, application: data });
+        } else {
+          const errData = await response.json().catch(() => ({}));
+          sendResponse({ success: false, error: errData.error || 'Server error' });
+        }
+      })
+      .catch((err: any) => {
+        console.error('Update status by URL failed:', err);
+        sendResponse({ success: false, error: err.message });
+      });
+    return true;
+  }
 });
