@@ -9,12 +9,14 @@
     "apps/worker",
     "packages/database",
     "packages/shared",
-    "packages/ai"
+    "packages/ai",
+    "apps/extension"
   ],
   "scripts": {
     "web:dev": "npm run dev -w apps/web",
     "api:dev": "npm run dev -w apps/api",
     "worker:dev": "npm run dev -w apps/worker",
+    "extension:dev": "npm run dev -w apps/extension",
     "db:generate": "npm run generate -w packages/database",
     "db:migrate": "npm run migrate -w packages/database",
     "build": "npm run build --workspaces --if-present",
