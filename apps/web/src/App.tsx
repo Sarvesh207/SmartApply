@@ -15,6 +15,7 @@ import ResumeManager from './pages/ResumeManager';
 import Applications from './pages/Applications';
 import Settings from './pages/Settings';
 import LandingPage from './pages/LandingPage';
+import PrivacyPolicy from './pages/PrivacyPolicy';
 
 // Components
 import Navbar from './components/Navbar';
@@ -93,6 +94,7 @@ export default function App() {
         <Routes>
           {/* Public Landing page */}
           <Route path="/" element={<LandingPage />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
 
           {/* Public Authentication routes */}
           <Route 

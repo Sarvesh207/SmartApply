@@ -963,7 +963,7 @@ export default function LandingPage() {
             <ul className="space-y-2">
               <li><a href="https://github.com" className="hover:text-white transition-colors flex items-center gap-1">GitHub <ExternalLink className="w-2.5 h-2.5" /></a></li>
               <li><a href="#product" className="hover:text-white transition-colors">About Us</a></li>
-              <li><a href="#features" className="hover:text-white transition-colors">Privacy Policy</a></li>
+              <li><Link to="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link></li>
             </ul>
           </div>
         </div>
@@ -971,7 +971,7 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto mt-12 pt-8 border-t border-neutral-900 flex flex-col sm:flex-row justify-between items-center gap-4 font-sans text-[10px] text-neutral-600">
           <span>&copy; {new Date().getFullYear()} SmartApply. All rights reserved.</span>
           <div className="flex gap-4">
-            <a href="#privacy" className="hover:text-neutral-400 transition-colors">Privacy Policy</a>
+            <Link to="/privacy" className="hover:text-neutral-400 transition-colors">Privacy Policy</Link>
             <a href="#terms" className="hover:text-neutral-400 transition-colors">Terms of Service</a>
           </div>
         </div>

@@ -17,8 +17,25 @@ const dashboard_1 = __importDefault(require("./routes/dashboard"));
 const app = (0, express_1.default)();
 // Security Middlewares
 app.use((0, helmet_1.default)());
+const corsOrigin = process.env.CORS_ORIGIN || 'http://localhost:5173';
+const allowedOrigins = corsOrigin.split(',').map(origin => origin.trim());
 app.use((0, cors_1.default)({
-    origin: process.env.CORS_ORIGIN || '*',
+    origin: (origin, callback) => {
+        // Allow requests with no origin (like mobile apps, curl, or extension background scripts)
+        if (!origin) {
+            return callback(null, true);
+        }
+        const isAllowed = allowedOrigins.includes('*') ||
+            allowedOrigins.includes(origin) ||
+            origin.startsWith('chrome-extension://');
+        if (isAllowed) {
+            callback(null, true);
+        }
+        else {
+            callback(null, false);
+        }
+    },
+    credentials: true,
     methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));

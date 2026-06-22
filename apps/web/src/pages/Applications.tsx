@@ -18,7 +18,9 @@ import {
   ArrowUpDown,
   BookOpen,
   Check,
-  Edit2
+  Edit2,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -48,11 +50,32 @@ const addJobSchema = z.object({
 
 type AddJobInputs = z.infer<typeof addJobSchema>;
 
+interface FetchApplicationsResponse {
+  applications: ApplicationDTO[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+  statusCounts: {
+    Saved: number;
+    Applied: number;
+    Interview: number;
+    Rejected: number;
+    Offer: number;
+    Expired: number;
+    All: number;
+  };
+}
+
 export default function Applications() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<'All' | ApplicationStatus>('All');
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [page, setPage] = useState(1);
   
   // Sorting State
   const [sortColumn, setSortColumn] = useState<'title' | 'company' | 'location' | 'scrapedAt' | 'appliedAt' | 'matchScore'>('appliedAt');
@@ -62,6 +85,15 @@ export default function Applications() {
   const [selectedApp, setSelectedApp] = useState<ApplicationDTO | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+
+  // Debounce search input
+  React.useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [search]);
 
   // React Hook Form for URL Add Modal
   const { register, handleSubmit, setValue, watch, reset, formState: { errors } } = useForm<AddJobInputs>({
@@ -81,10 +113,14 @@ export default function Applications() {
   const selectedStatus = watch('status');
 
   // Fetch applications
-  const { data: applications = [], isLoading, error } = useQuery<ApplicationDTO[]>({
-    queryKey: ['applications'],
-    queryFn: () => apiFetch('/applications'),
+  const { data, isLoading, error } = useQuery<FetchApplicationsResponse>({
+    queryKey: ['applications', page, activeTab, debouncedSearch, sortColumn, sortDirection],
+    queryFn: () => apiFetch(`/applications?page=${page}&limit=10&status=${activeTab}&search=${debouncedSearch}&sort=${sortColumn}&order=${sortDirection}`),
   });
+
+  const applications = data?.applications || [];
+  const pagination = data?.pagination;
+  const statusCounts = data?.statusCounts;
 
   // Update application status, notes, or appliedAt date
   const updateMutation = useMutation({
@@ -172,6 +208,7 @@ export default function Applications() {
   };
 
   const handleSort = (col: typeof sortColumn) => {
+    setPage(1);
     if (sortColumn === col) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
@@ -179,48 +216,6 @@ export default function Applications() {
       setSortDirection('desc');
     }
   };
-
-  // Filter application list
-  const filteredApps = applications.filter((app) => {
-    const matchesTab = activeTab === 'All' || app.status === activeTab;
-    const matchesSearch = 
-      app.job.title.toLowerCase().includes(search.toLowerCase()) ||
-      app.job.company.toLowerCase().includes(search.toLowerCase()) ||
-      app.job.location.toLowerCase().includes(search.toLowerCase()) ||
-      (app.notes && app.notes.toLowerCase().includes(search.toLowerCase()));
-    
-    return matchesTab && matchesSearch;
-  });
-
-  // Sort applications list
-  const sortedApps = [...filteredApps].sort((a, b) => {
-    let valA: any;
-    let valB: any;
-
-    if (sortColumn === 'title') {
-      valA = a.job.title.toLowerCase();
-      valB = b.job.title.toLowerCase();
-    } else if (sortColumn === 'company') {
-      valA = a.job.company.toLowerCase();
-      valB = b.job.company.toLowerCase();
-    } else if (sortColumn === 'location') {
-      valA = a.job.location.toLowerCase();
-      valB = b.job.location.toLowerCase();
-    } else if (sortColumn === 'scrapedAt') {
-      valA = new Date(a.job.scrapedAt).getTime();
-      valB = new Date(b.job.scrapedAt).getTime();
-    } else if (sortColumn === 'appliedAt') {
-      valA = a.appliedAt ? new Date(a.appliedAt).getTime() : 0;
-      valB = b.appliedAt ? new Date(b.appliedAt).getTime() : 0;
-    } else if (sortColumn === 'matchScore') {
-      valA = a.job.matchScore || 0;
-      valB = b.job.matchScore || 0;
-    }
-
-    if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
-    if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
-    return 0;
-  });
 
   const getStatusBadgeStyle = (status: ApplicationStatus) => {
     const opt = STATUS_OPTIONS.find(o => o.id === status);
@@ -251,8 +246,9 @@ export default function Applications() {
 
   // Count helper
   const getTabCount = (status: 'All' | ApplicationStatus) => {
-    if (status === 'All') return applications.length;
-    return applications.filter(app => app.status === status).length;
+    if (!statusCounts) return 0;
+    if (status === 'All') return statusCounts.All;
+    return statusCounts[status] || 0;
   };
 
   return (
@@ -288,7 +284,10 @@ export default function Applications() {
         {/* Status Tab Navigation */}
         <div className="flex border-b border-white/5 gap-2 overflow-x-auto pb-px">
           <button
-            onClick={() => setActiveTab('All')}
+            onClick={() => {
+              setActiveTab('All');
+              setPage(1);
+            }}
             className={`flex items-center gap-2 px-4 py-3 border-b-2 text-xs font-semibold whitespace-nowrap transition-all ${
               activeTab === 'All' 
                 ? 'border-white text-white' 
@@ -303,7 +302,10 @@ export default function Applications() {
           {STATUS_OPTIONS.map((opt) => (
             <button
               key={opt.id}
-              onClick={() => setActiveTab(opt.id)}
+              onClick={() => {
+                setActiveTab(opt.id);
+                setPage(1);
+              }}
               className={`flex items-center gap-2 px-4 py-3 border-b-2 text-xs font-semibold whitespace-nowrap transition-all ${
                 activeTab === opt.id 
                   ? 'border-white text-white' 
@@ -368,7 +370,7 @@ export default function Applications() {
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5 text-gray-200">
-              {sortedApps.length === 0 ? (
+              {applications.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="text-center py-20 text-muted-foreground">
                     <FileText className="w-12 h-12 mx-auto mb-3 text-gray-700" />
@@ -376,7 +378,7 @@ export default function Applications() {
                   </td>
                 </tr>
               ) : (
-                sortedApps.map((app) => (
+                applications.map((app) => (
                   <tr 
                     key={app.id} 
                     className="hover:bg-white/[0.02] transition-colors group"
@@ -546,6 +548,31 @@ export default function Applications() {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Controls */}
+        {pagination && pagination.totalPages > 1 && (
+          <div className="flex justify-between items-center p-4 border-t border-white/5 text-xs text-muted-foreground">
+            <span>
+              Showing Page {page} of {pagination.totalPages} ({pagination.total} applications)
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                disabled={page === 1}
+                onClick={() => setPage(page - 1)}
+                className="p-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-all text-white"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <button
+                disabled={page === pagination.totalPages}
+                onClick={() => setPage(page + 1)}
+                className="p-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-all text-white"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* QUICK ADD JOB BY URL MODAL */}

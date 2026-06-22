@@ -24,16 +24,134 @@ router.get('/', authenticateJWT, async (req: AuthenticatedRequest, res: Response
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
+    // 1. Fetch all applications for the user
     const applications = await prisma.application.findMany({
       where: { userId },
       include: {
         job: true,
         screeningAnswers: true,
       },
-      orderBy: { updatedAt: 'desc' },
     });
 
-    res.json(applications);
+    // 2. Fetch all job matches for the user to enrich application list
+    const matches = await prisma.jobMatch.findMany({
+      where: {
+        userId,
+        jobId: { in: applications.map(app => app.jobId) },
+      },
+    });
+    const matchMap = new Map(matches.map(m => [m.jobId, m]));
+
+    // 3. Attach matchScore and matchDetails to the jobs
+    const applicationsWithScores = applications.map(app => {
+      const match = matchMap.get(app.jobId);
+      return {
+        ...app,
+        job: {
+          ...app.job,
+          matchScore: match ? match.matchScore : null,
+          matchDetails: match ? {
+            matchScore: match.matchScore,
+            matchedSkills: match.matchedSkills,
+            missingSkills: match.missingSkills,
+            recommendation: match.recommendation,
+          } : null,
+        }
+      };
+    });
+
+    // If page and limit are not specified, return the full array for backward compatibility
+    if (!req.query.page && !req.query.limit) {
+      applicationsWithScores.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+      return res.json(applicationsWithScores);
+    }
+
+    // Parse query params for filtering/sorting/pagination
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const search = req.query.search as string || '';
+    const status = req.query.status as string || '';
+    const sort = req.query.sort as string || 'updatedAt';
+    const order = (req.query.order as string) === 'asc' ? 'asc' : 'desc';
+
+    // 5. Apply filtering
+    let filtered = applicationsWithScores;
+    if (status && status !== 'All') {
+      filtered = filtered.filter(app => app.status === status);
+    }
+    if (search) {
+      const searchLower = search.toLowerCase();
+      filtered = filtered.filter(app => {
+        return (
+          app.job.title.toLowerCase().includes(searchLower) ||
+          app.job.company.toLowerCase().includes(searchLower) ||
+          app.job.location.toLowerCase().includes(searchLower) ||
+          (app.notes && app.notes.toLowerCase().includes(searchLower))
+        );
+      });
+    }
+
+    // 6. Apply sorting
+    filtered.sort((a, b) => {
+      let valA: any;
+      let valB: any;
+
+      if (sort === 'title') {
+        valA = a.job.title.toLowerCase();
+        valB = b.job.title.toLowerCase();
+      } else if (sort === 'company') {
+        valA = a.job.company.toLowerCase();
+        valB = b.job.company.toLowerCase();
+      } else if (sort === 'location') {
+        valA = a.job.location.toLowerCase();
+        valB = b.job.location.toLowerCase();
+      } else if (sort === 'scrapedAt') {
+        valA = new Date(a.job.scrapedAt).getTime();
+        valB = new Date(b.job.scrapedAt).getTime();
+      } else if (sort === 'appliedAt') {
+        valA = a.appliedAt ? new Date(a.appliedAt).getTime() : 0;
+        valB = b.appliedAt ? new Date(b.appliedAt).getTime() : 0;
+      } else if (sort === 'matchScore') {
+        valA = a.job.matchScore || 0;
+        valB = b.job.matchScore || 0;
+      } else if (sort === 'createdAt') {
+        valA = new Date(a.createdAt).getTime();
+        valB = new Date(b.createdAt).getTime();
+      } else {
+        // default to updatedAt
+        valA = new Date(a.updatedAt).getTime();
+        valB = new Date(b.updatedAt).getTime();
+      }
+
+      if (valA < valB) return order === 'asc' ? -1 : 1;
+      if (valA > valB) return order === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+    // 7. Paginate
+    const total = filtered.length;
+    const startIndex = (page - 1) * limit;
+    const paginated = filtered.slice(startIndex, startIndex + limit);
+
+    // 8. Return response matching the Jobs paginated API signature
+    res.json({
+      applications: paginated,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+      statusCounts: {
+        Saved: applications.filter(app => app.status === 'Saved').length,
+        Applied: applications.filter(app => app.status === 'Applied').length,
+        Interview: applications.filter(app => app.status === 'Interview').length,
+        Rejected: applications.filter(app => app.status === 'Rejected').length,
+        Offer: applications.filter(app => app.status === 'Offer').length,
+        Expired: applications.filter(app => app.status === 'Expired').length,
+        All: applications.length,
+      }
+    });
   } catch (error) {
     console.error('Fetch applications error:', error);
     res.status(500).json({ error: 'Failed to fetch applications' });

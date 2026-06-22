@@ -44,13 +44,22 @@ async function runAutofill(jobUrl, userId) {
 }
 async function runBrowserScript(url, data, resumeText) {
     console.log(`Launching headful Playwright browser for URL: ${url}`);
-    const browser = await playwright_1.chromium.launch({
+    const userDataDir = path_1.default.join(os_1.default.homedir(), '.smartapply', 'chrome_profile');
+    if (!fs_1.default.existsSync(userDataDir)) {
+        fs_1.default.mkdirSync(userDataDir, { recursive: true });
+    }
+    // Launch persistent context using native Chrome and custom flags to bypass sign-in automation blocks
+    const context = await playwright_1.chromium.launchPersistentContext(userDataDir, {
         headless: false,
-        args: ['--start-maximized']
+        channel: 'chrome',
+        viewport: null,
+        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        args: [
+            '--disable-blink-features=AutomationControlled',
+            '--start-maximized'
+        ]
     });
-    // Create context without viewport restrictions so it maximizes
-    const context = await browser.newContext({ viewport: null });
-    const page = await context.newPage();
+    const page = context.pages()[0] || await context.newPage();
     try {
         await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
         console.log('Page loaded, scanning for forms...');
@@ -145,6 +154,11 @@ async function runBrowserScript(url, data, resumeText) {
         console.error('Error during form autofill:', error);
     }
     finally {
+        // Close context to release persistent profile locks
+        try {
+            await context.close();
+        }
+        catch { }
         // Attempt clean up of temp file
         try {
             const tempResumePath = path_1.default.join(os_1.default.tmpdir(), 'SmartApply_Resume.pdf');
