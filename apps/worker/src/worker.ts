@@ -14,13 +14,19 @@ dotenv.config();
 const REDIS_HOST = process.env.REDIS_HOST || 'localhost';
 const REDIS_PORT = parseInt(process.env.REDIS_PORT || '6379', 10);
 
-const connection = {
-  host: REDIS_HOST,
-  port: REDIS_PORT,
-  maxRetriesPerRequest: null,
-};
+const connection = REDIS_HOST.startsWith('redis://') || REDIS_HOST.startsWith('rediss://')
+  ? new ioredis(REDIS_HOST, { maxRetriesPerRequest: null })
+  : {
+      host: REDIS_HOST,
+      port: REDIS_PORT,
+      maxRetriesPerRequest: null,
+    };
 
-console.log(`Worker connecting to Redis at ${REDIS_HOST}:${REDIS_PORT}`);
+if (REDIS_HOST.startsWith('redis://') || REDIS_HOST.startsWith('rediss://')) {
+  console.log('Worker connecting to Redis via connection URL...');
+} else {
+  console.log(`Worker connecting to Redis at ${REDIS_HOST}:${REDIS_PORT}`);
+}
 
 // Initialize repeatable job scheduler
 setupScheduler().catch(err => {
@@ -46,7 +52,7 @@ const worker = new Worker(
         console.warn(`Unknown job name: ${job.name}`);
     }
   },
-  { connection }
+  { connection: connection as any }
 );
 
 worker.on('completed', (job) => {

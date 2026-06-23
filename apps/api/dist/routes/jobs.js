@@ -38,6 +38,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+const ioredis_1 = __importDefault(require("ioredis"));
 const database_1 = require("@smartapply/database");
 const ai_1 = require("@smartapply/ai");
 const auth_1 = require("../middleware/auth");
@@ -246,16 +247,21 @@ router.post('/trigger-scrape', auth_1.authenticateJWT, async (req, res) => {
         const { Queue } = await Promise.resolve().then(() => __importStar(require('bullmq')));
         const REDIS_HOST = process.env.REDIS_HOST || 'localhost';
         const REDIS_PORT = parseInt(process.env.REDIS_PORT || '6379', 10);
-        const connection = {
-            host: REDIS_HOST,
-            port: REDIS_PORT,
-            maxRetriesPerRequest: null,
-        };
-        const jobsQueue = new Queue('smartapply-queue', { connection });
+        const connection = REDIS_HOST.startsWith('redis://') || REDIS_HOST.startsWith('rediss://')
+            ? new ioredis_1.default(REDIS_HOST, { maxRetriesPerRequest: null })
+            : {
+                host: REDIS_HOST,
+                port: REDIS_PORT,
+                maxRetriesPerRequest: null,
+            };
+        const jobsQueue = new Queue('smartapply-queue', { connection: connection });
         // Add scrape-jobs job immediately to trigger Python Scraper
         await jobsQueue.add('scrape-jobs', { immediate: true });
         // Disconnect connection inside BullMQ client safely
         await jobsQueue.close();
+        if (connection instanceof ioredis_1.default) {
+            await connection.quit();
+        }
         res.json({ message: 'Scraper task triggered! Fetching jobs based on your profile in the background.' });
     }
     catch (error) {

@@ -4,6 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const bullmq_1 = require("bullmq");
+const ioredis_1 = __importDefault(require("ioredis"));
 const child_process_1 = require("child_process");
 const path_1 = __importDefault(require("path"));
 const dotenv_1 = __importDefault(require("dotenv"));
@@ -15,12 +16,19 @@ dotenv_1.default.config({ path: '../../.env' });
 dotenv_1.default.config();
 const REDIS_HOST = process.env.REDIS_HOST || 'localhost';
 const REDIS_PORT = parseInt(process.env.REDIS_PORT || '6379', 10);
-const connection = {
-    host: REDIS_HOST,
-    port: REDIS_PORT,
-    maxRetriesPerRequest: null,
-};
-console.log(`Worker connecting to Redis at ${REDIS_HOST}:${REDIS_PORT}`);
+const connection = REDIS_HOST.startsWith('redis://') || REDIS_HOST.startsWith('rediss://')
+    ? new ioredis_1.default(REDIS_HOST, { maxRetriesPerRequest: null })
+    : {
+        host: REDIS_HOST,
+        port: REDIS_PORT,
+        maxRetriesPerRequest: null,
+    };
+if (REDIS_HOST.startsWith('redis://') || REDIS_HOST.startsWith('rediss://')) {
+    console.log('Worker connecting to Redis via connection URL...');
+}
+else {
+    console.log(`Worker connecting to Redis at ${REDIS_HOST}:${REDIS_PORT}`);
+}
 // Initialize repeatable job scheduler
 (0, scheduler_1.setupScheduler)().catch(err => {
     console.error('Failed to initialize scheduler:', err);
@@ -40,7 +48,7 @@ const worker = new bullmq_1.Worker('smartapply-queue', async (job) => {
         default:
             console.warn(`Unknown job name: ${job.name}`);
     }
-}, { connection });
+}, { connection: connection });
 worker.on('completed', (job) => {
     console.log(`Job ${job.id} [${job.name}] completed successfully`);
 });

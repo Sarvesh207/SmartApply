@@ -1,4 +1,5 @@
 FROM node:20-alpine AS builder
+RUN apk add --no-cache openssl
 WORKDIR /app
 
 # Copy root and package manifests
@@ -27,12 +28,13 @@ RUN npm run build -w apps/worker
 
 # Runner stage
 FROM node:20-alpine AS runner
+RUN apk add --no-cache openssl
 WORKDIR /app
 
 ENV NODE_ENV=production
 
 # Install python and pip to allow worker to launch python scraper subprocess
-RUN apk add --no-update python3 py3-pip python3-dev build-base postgresql-dev
+RUN apk add --no-update python3 py3-pip python3-dev build-base postgresql-dev openssl
 
 # Install python packages in worker container
 COPY services/scraper/requirements.txt ./

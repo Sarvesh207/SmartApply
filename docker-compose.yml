@@ -32,11 +32,11 @@ services:
     ports:
       - "5000:5000"
     environment:
-      - DATABASE_URL=postgresql://postgres:postgrespassword@postgres:5432/smartapply?schema=public
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - JWT_SECRET=smartapply-secret-key-12345
-      - CORS_ORIGIN=*
+      - DATABASE_URL=${DATABASE_URL:-postgresql://postgres:postgrespassword@postgres:5432/smartapply?schema=public}
+      - REDIS_HOST=${REDIS_HOST:-redis}
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      - JWT_SECRET=${JWT_SECRET:-smartapply-secret-key-12345}
+      - CORS_ORIGIN=${CORS_ORIGIN:-*}
     depends_on:
       - postgres
       - redis
@@ -48,10 +48,10 @@ services:
     container_name: smartapply-worker
     restart: always
     environment:
-      - DATABASE_URL=postgresql://postgres:postgrespassword@postgres:5432/smartapply?schema=public
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - JWT_SECRET=smartapply-secret-key-12345
+      - DATABASE_URL=${DATABASE_URL:-postgresql://postgres:postgrespassword@postgres:5432/smartapply?schema=public}
+      - REDIS_HOST=${REDIS_HOST:-redis}
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      - JWT_SECRET=${JWT_SECRET:-smartapply-secret-key-12345}
     depends_on:
       - postgres
       - redis
@@ -62,7 +62,7 @@ services:
       dockerfile: Dockerfile
     container_name: smartapply-scraper
     environment:
-      - DATABASE_URL=postgresql://postgres:postgrespassword@postgres:5432/smartapply?schema=public
+      - DATABASE_URL=${DATABASE_URL:-postgresql://postgres:postgrespassword@postgres:5432/smartapply?schema=public}
     # Sleep to keep container running if it is scheduled externally, or run cron
     command: >
       sh -c "python scraper.py && echo 'First scrape done. Entering sleep cycle...' && while true; do sleep 21600; python scraper.py; done"
