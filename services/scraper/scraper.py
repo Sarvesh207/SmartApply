@@ -36,12 +36,14 @@ def get_db_connection():
     if db_url.startswith("postgres://"):
         db_url = db_url.replace("postgres://", "postgresql://", 1)
         
-    # Prisma's query parameters (like ?schema=public) cause psycopg2 to fail.
-    # Parse URL and strip the 'schema' parameter specifically, leaving other valid parameters intact.
+    # Prisma's query parameters (like ?schema=public, pgbouncer=true, connection_limit=1) cause psycopg2 to fail.
+    # Parse URL and strip these parameters specifically.
     try:
         parsed = urlparse(db_url)
         query = parse_qs(parsed.query)
         query.pop('schema', None)
+        query.pop('pgbouncer', None)
+        query.pop('connection_limit', None)
         new_query = urlencode(query, doseq=True)
         db_url = urlunparse(parsed._replace(query=new_query))
     except Exception as e:

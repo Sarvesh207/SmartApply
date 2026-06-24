@@ -21,6 +21,8 @@ chrome.runtime.onInstalled.addListener(() => {
   });
 });
 
+const API_URL = 'https://smartapply.up.railway.app';
+
 // Relay messages between popup and content scripts
 chrome.runtime.onMessage.addListener((
   message: any,
@@ -29,7 +31,7 @@ chrome.runtime.onMessage.addListener((
 ) => {
   if (message.type === 'CHECK_AUTH') {
     // Check if user is logged into the local backend using cookies
-    fetch('http://localhost:5000/auth/me')
+    fetch(`${API_URL}/auth/me`)
       .then(async (response) => {
         if (response.ok) {
           const data = await response.json();
@@ -46,7 +48,7 @@ chrome.runtime.onMessage.addListener((
   }
   
   if (message.type === 'FETCH_RESUME') {
-    fetch('http://localhost:5000/resume')
+    fetch(`${API_URL}/resume`)
       .then(async (response) => {
         if (response.ok) {
           const data = await response.json();
@@ -63,7 +65,7 @@ chrome.runtime.onMessage.addListener((
   }
 
   if (message.type === 'UPDATE_STATUS_BY_URL') {
-    fetch('http://localhost:5000/applications/status-by-url', {
+    fetch(`${API_URL}/applications/status-by-url`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json'
