@@ -16,6 +16,10 @@ COPY apps/web ./apps/web
 
 # Build shared first then web
 RUN npm run build -w packages/shared
+
+# Declare build argument for the API URL and make it available to the Vite build process
+ARG VITE_API_URL
+ENV VITE_API_URL=$VITE_API_URL
 RUN npm run build -w apps/web
 
 # Production runtime Nginx container

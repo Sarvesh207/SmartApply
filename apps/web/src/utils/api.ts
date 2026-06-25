@@ -1,13 +1,9 @@
 import axios from 'axios';
 import { useAuthStore } from '../store/authStore';
 
-// Fallback for Jest/Node environment where import.meta is not available
+// Resolve the API URL safely for both Jest/Node and Browser environments
 const getApiUrl = () => {
-  try {
-    return eval('import.meta.env.VITE_API_URL');
-  } catch {
-    return (globalThis as any).import?.meta?.env?.VITE_API_URL || 'http://localhost:5000';
-  }
+  return process.env.VITE_API_URL || 'http://localhost:5000';
 };
 
 export const API_BASE_URL = getApiUrl();
