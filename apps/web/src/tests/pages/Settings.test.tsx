@@ -92,7 +92,7 @@ describe('Settings Page', () => {
     mockIsPending = true;
     renderWithProviders(<Settings />);
 
-    const saveBtn = screen.getByRole('button');
+    const saveBtn = screen.getByRole('button', { name: /Saving/i });
     expect(saveBtn).toBeDisabled();
     expect(screen.getByText('Saving...')).toBeInTheDocument();
   });

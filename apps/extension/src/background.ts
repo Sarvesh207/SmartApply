@@ -14,7 +14,18 @@ chrome.runtime.onInstalled.addListener(() => {
           yearsOfExperience: 3,
           portfolioUrl: 'https://portfolio.dev',
           githubUrl: 'https://github.com/developer',
-          linkedinUrl: 'https://linkedin.com/in/developer'
+          linkedinUrl: 'https://linkedin.com/in/developer',
+          currentCtc: '12',
+          expectedCtc: '18',
+          noticePeriod: '30',
+          onNoticePeriod: false,
+          lastWorkingDay: '',
+          openToRelocate: true,
+          customQuestions: [
+            { keyword: 'gender', answer: 'Male' },
+            { keyword: 'date of birth', answer: '15/08/1995' },
+            { keyword: 'veteran', answer: 'No' }
+          ]
         }
       });
     }

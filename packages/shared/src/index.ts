@@ -110,4 +110,10 @@ export interface AutoFillProfile {
   yearsOfExperience: number;
   desiredSalary?: string;
   noticePeriod?: string;
+  currentCtc?: string;
+  expectedCtc?: string;
+  onNoticePeriod?: boolean;
+  lastWorkingDay?: string;
+  openToRelocate?: boolean;
+  customQuestions?: { keyword: string; answer: string }[];
 }

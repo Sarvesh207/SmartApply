@@ -43,6 +43,7 @@ beforeAll(() => {
   console.error = (...args) => {
     if (
       args[0] &&
+      typeof args[0] === 'string' &&
       (args[0].includes('Warning: React does not recognize the') ||
         args[0].includes('Warning: An update to') ||
         args[0].includes('Error: Not implemented: navigation'))

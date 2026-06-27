@@ -119,11 +119,14 @@ document.addEventListener('DOMContentLoaded', async () => {
           const current = result.autofillProfile || {};
           const updated = {
             ...current,
-            email: userProfile?.email || current.email,
+            ...resume.contactInfo,
+            email: userProfile?.email || resume.contactInfo?.email || current.email,
             // Simple mapping from parsed skills if available
-            location: resume.location || current.location || 'India',
+            location: resume.contactInfo?.location || resume.location || current.location || 'India',
           };
-          chrome.storage.local.set({ autofillProfile: updated });
+          chrome.storage.local.set({ autofillProfile: updated }, () => {
+            console.log('SmartApply: Synced profile presets from backend database');
+          });
         });
       }
     });

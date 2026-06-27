@@ -67,6 +67,7 @@ router.post('/upload', authenticateJWT, upload.single('resume'), async (req: Aut
         experience: resume.experience,
         projects: resume.projects,
         education: resume.education,
+        contactInfo: resume.contactInfo,
         updatedAt: resume.updatedAt,
       },
     });
@@ -107,7 +108,7 @@ router.put('/', authenticateJWT, async (req: AuthenticatedRequest, res: Response
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    const { skills, experience, projects, education } = req.body;
+    const { skills, experience, projects, education, contactInfo } = req.body;
 
     const resume = await prisma.resume.update({
       where: { userId },
@@ -116,6 +117,7 @@ router.put('/', authenticateJWT, async (req: AuthenticatedRequest, res: Response
         experience,
         projects,
         education,
+        contactInfo,
       },
     });
 

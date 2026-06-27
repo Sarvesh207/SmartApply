@@ -65,6 +65,7 @@ router.post('/upload', auth_1.authenticateJWT, upload.single('resume'), async (r
                 experience: resume.experience,
                 projects: resume.projects,
                 education: resume.education,
+                contactInfo: resume.contactInfo,
                 updatedAt: resume.updatedAt,
             },
         });
@@ -101,7 +102,7 @@ router.put('/', auth_1.authenticateJWT, async (req, res) => {
         if (!userId) {
             return res.status(401).json({ error: 'Unauthorized' });
         }
-        const { skills, experience, projects, education } = req.body;
+        const { skills, experience, projects, education, contactInfo } = req.body;
         const resume = await database_1.prisma.resume.update({
             where: { userId },
             data: {
@@ -109,6 +110,7 @@ router.put('/', auth_1.authenticateJWT, async (req, res) => {
                 experience,
                 projects,
                 education,
+                contactInfo,
             },
         });
         // Clear stale job matches so they can be re-evaluated against the updated profile

@@ -11,6 +11,13 @@ interface ProfileData {
   portfolioUrl?: string;
   githubUrl?: string;
   linkedinUrl?: string;
+  currentCtc?: string;
+  expectedCtc?: string;
+  noticePeriod?: string;
+  onNoticePeriod?: boolean;
+  lastWorkingDay?: string;
+  openToRelocate?: boolean;
+  customQuestions?: { keyword: string; answer: string }[];
 }
 
 // 1. Define Selectors Dictionaries
@@ -53,6 +60,30 @@ const selectors = {
   experience: [
     'input[name*="experience" i]', 'input[id*="experience" i]',
     'input[placeholder*="experience" i]', 'input[type="number"][name*="year" i]'
+  ],
+  currentCtc: [
+    'input[id="current_ctc_field"]',
+    'input[name*="current_ctc" i]', 'input[id*="current_ctc" i]',
+    'input[name*="current_salary" i]', 'input[id*="current_salary" i]',
+    'input[placeholder*="current ctc" i]', 'input[placeholder*="current salary" i]',
+    'input[name*="ctc" i]', 'input[id*="ctc" i]'
+  ],
+  expectedCtc: [
+    'input[id="expected_ctc_field"]',
+    'input[name*="expected_ctc" i]', 'input[id*="expected_ctc" i]',
+    'input[name*="expected_salary" i]', 'input[id*="expected_salary" i]',
+    'input[placeholder*="expected ctc" i]', 'input[placeholder*="expected salary" i]'
+  ],
+  noticePeriod: [
+    'input[id="notice_period_field"]',
+    'input[name*="notice_period" i]', 'input[id*="notice_period" i]',
+    'input[placeholder*="notice period" i]', 'input[name*="notice" i]',
+    'input[id*="notice" i]'
+  ],
+  lastWorkingDay: [
+    'input[name*="last_day" i]', 'input[name*="last_worked" i]', 'input[name*="last_working" i]',
+    'input[placeholder*="last working" i]', 'input[placeholder*="last worked" i]',
+    'input[id*="last_day" i]', 'input[id*="last_working" i]'
   ],
   file: [
     'input[type="file"][name*="resume" i]', 'input[type="file"][id*="resume" i]',
@@ -109,6 +140,37 @@ function setInputValue(element: HTMLInputElement | HTMLTextAreaElement, value: s
   element.blur();
 }
 
+const radioSelectors = {
+  onNoticePeriod: {
+    yes: [
+      'input[id="is_on_notice_period_field_option_1"]', // Recrew AI
+      'input[type="radio"][id*="notice" i][id*="yes" i]',
+      'input[type="radio"][name*="notice" i][value="yes" i]',
+      'input[type="radio"][name*="notice" i][value="true" i]'
+    ],
+    no: [
+      'input[id="is_on_notice_period_field_option_2"]', // Recrew AI
+      'input[type="radio"][id*="notice" i][id*="no" i]',
+      'input[type="radio"][name*="notice" i][value="no" i]',
+      'input[type="radio"][name*="notice" i][value="false" i]'
+    ]
+  },
+  openToRelocate: {
+    yes: [
+      'input[id="radio_select_field_1_option_1"]', // Recrew AI
+      'input[type="radio"][id*="relocate" i][id*="yes" i]',
+      'input[type="radio"][name*="relocate" i][value="yes" i]',
+      'input[type="radio"][name*="relocate" i][value="true" i]'
+    ],
+    no: [
+      'input[id="radio_select_field_1_option_2"]', // Recrew AI
+      'input[type="radio"][id*="relocate" i][id*="no" i]',
+      'input[type="radio"][name*="relocate" i][value="no" i]',
+      'input[type="radio"][name*="relocate" i][value="false" i]'
+    ]
+  }
+};
+
 // 5. General Autofill Runner
 function executeAutofill(profile: ProfileData) {
   console.log('Autofill engine running with profile:', profile);
@@ -116,7 +178,8 @@ function executeAutofill(profile: ProfileData) {
   const filledElements = new Set<HTMLElement>();
 
   // Function helper to search selectors and fill all matching visible elements
-  const fillField = (selectorsList: string[], value: string): boolean => {
+  const fillField = (selectorsList: string[], value: string | undefined): boolean => {
+    if (!value || value.trim() === '') return false;
     let filled = false;
     for (const selector of selectorsList) {
       const elements = document.querySelectorAll(selector);
@@ -134,23 +197,166 @@ function executeAutofill(profile: ProfileData) {
     return filled;
   };
 
+  const fillRadioField = (value: boolean | string | undefined, yesSelectors: string[], noSelectors: string[]): boolean => {
+    if (value === undefined || value === null || value === '') return false;
+    const isYes = value === true || String(value).toLowerCase() === 'yes' || String(value).toLowerCase() === 'true';
+    const targetSelectors = isYes ? yesSelectors : noSelectors;
+    
+    for (const selector of targetSelectors) {
+      const elements = document.querySelectorAll(selector);
+      for (const el of Array.from(elements) as HTMLInputElement[]) {
+        if (el && el.offsetParent !== null && !el.checked && !filledElements.has(el)) {
+          el.click();
+          el.dispatchEvent(new Event('change', { bubbles: true }));
+          filledCount++;
+          filledElements.add(el);
+          console.log(`Selected radio button selector: ${selector}`);
+          return true;
+        }
+      }
+    }
+    return false;
+  };
+
   // Fill standard fields
   fillField(selectors.fullName, profile.fullName);
   fillField(selectors.email, profile.email);
   fillField(selectors.phone, profile.phone);
   fillField(selectors.location, profile.location);
-  fillField(selectors.linkedin, profile.linkedinUrl || '');
-  fillField(selectors.github, profile.githubUrl || '');
-  fillField(selectors.portfolio, profile.portfolioUrl || '');
+  fillField(selectors.linkedin, profile.linkedinUrl);
+  fillField(selectors.github, profile.githubUrl);
+  fillField(selectors.portfolio, profile.portfolioUrl);
   fillField(selectors.experience, String(profile.yearsOfExperience));
+  fillField(selectors.currentCtc, profile.currentCtc);
+  fillField(selectors.expectedCtc, profile.expectedCtc);
+  fillField(selectors.noticePeriod, profile.noticePeriod);
+  fillField(selectors.lastWorkingDay, profile.lastWorkingDay);
 
-  // Note: File uploads cannot be fully automated with local paths directly from standard extension sandbox
-  // due to browser security restrictions. We warn/instruct the user in the logs.
+  // Fill radio choice fields
+  fillRadioField(profile.onNoticePeriod, radioSelectors.onNoticePeriod.yes, radioSelectors.onNoticePeriod.no);
+  fillRadioField(profile.openToRelocate, radioSelectors.openToRelocate.yes, radioSelectors.openToRelocate.no);
+
+  // Fill custom Q&A questions (relocation, dob, gender, veteran status, etc.)
+  if (profile.customQuestions && profile.customQuestions.length > 0) {
+    for (const q of profile.customQuestions) {
+      if (!q.keyword || !q.answer) continue;
+      const keywordLower = q.keyword.toLowerCase().trim();
+      const ansLower = q.answer.toLowerCase().trim();
+
+      const allInputs = document.querySelectorAll('input, select, textarea');
+      for (const el of Array.from(allInputs) as (HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement)[]) {
+        if (el.type === 'hidden' || el.type === 'submit' || el.type === 'button' || filledElements.has(el)) {
+          continue;
+        }
+
+        let matches = false;
+        const placeholder = 'placeholder' in el ? (el as any).placeholder : '';
+        const attrs = [el.id, el.name, placeholder, el.getAttribute('autocomplete'), el.getAttribute('aria-label')];
+        for (const attr of attrs) {
+          if (attr && attr.toLowerCase().includes(keywordLower)) {
+            matches = true;
+            break;
+          }
+        }
+
+        if (!matches) {
+          let labelText = '';
+          if (el.id) {
+            const labelEl = document.querySelector(`label[for="${el.id}"]`);
+            if (labelEl) labelText = labelEl.textContent || '';
+          }
+          if (!labelText) {
+            const parentLabel = el.closest('label');
+            if (parentLabel) labelText = parentLabel.textContent || '';
+          }
+          if (!labelText && el.parentElement) {
+            labelText = el.parentElement.textContent || '';
+          }
+          if (labelText && labelText.toLowerCase().includes(keywordLower)) {
+            matches = true;
+          }
+        }
+
+        if (matches && el.offsetParent !== null && (!el.value || el.value.trim() === '')) {
+          if (el.tagName === 'SELECT') {
+            const selectEl = el as HTMLSelectElement;
+            let matchedOption = false;
+            for (let i = 0; i < selectEl.options.length; i++) {
+              const opt = selectEl.options[i];
+              if (opt.value.toLowerCase().includes(ansLower) || opt.text.toLowerCase().includes(ansLower)) {
+                selectEl.selectedIndex = i;
+                selectEl.dispatchEvent(new Event('change', { bubbles: true }));
+                filledCount++;
+                filledElements.add(el);
+                matchedOption = true;
+                break;
+              }
+            }
+            if (!matchedOption && selectEl.options.length > 1 && selectEl.value === '') {
+              if (ansLower === 'yes' || ansLower === 'no') {
+                for (let i = 0; i < selectEl.options.length; i++) {
+                  const opt = selectEl.options[i];
+                  if (opt.text.toLowerCase().startsWith(ansLower) || opt.value.toLowerCase().startsWith(ansLower)) {
+                    selectEl.selectedIndex = i;
+                    selectEl.dispatchEvent(new Event('change', { bubbles: true }));
+                    filledCount++;
+                    filledElements.add(el);
+                    break;
+                  }
+                }
+              }
+            }
+          } else if (el.type === 'radio') {
+            const radioEl = el as HTMLInputElement;
+            let radioLabelText = '';
+            if (radioEl.id) {
+              const rLabel = document.querySelector(`label[for="${radioEl.id}"]`);
+              if (rLabel) radioLabelText = rLabel.textContent || '';
+            }
+            if (!radioLabelText) {
+              const parentLabel = radioEl.closest('label');
+              if (parentLabel) radioLabelText = parentLabel.textContent || '';
+            }
+            const matchesRadioAnswer = radioEl.value.toLowerCase().includes(ansLower) || 
+                                       radioLabelText.toLowerCase().includes(ansLower) ||
+                                       (ansLower === 'yes' && (radioEl.value === 'true' || radioEl.value === '1')) ||
+                                       (ansLower === 'no' && (radioEl.value === 'false' || radioEl.value === '0'));
+            if (matchesRadioAnswer) {
+              radioEl.click();
+              radioEl.dispatchEvent(new Event('change', { bubbles: true }));
+              filledCount++;
+              filledElements.add(el);
+            }
+          } else if (el.type === 'checkbox') {
+            const checkboxEl = el as HTMLInputElement;
+            const shouldCheck = ansLower === 'yes' || ansLower === 'true' || ansLower === '1';
+            if (checkboxEl.checked !== shouldCheck) {
+              checkboxEl.click();
+              checkboxEl.dispatchEvent(new Event('change', { bubbles: true }));
+              filledCount++;
+              filledElements.add(el);
+            }
+          } else {
+            setInputValue(el as HTMLInputElement | HTMLTextAreaElement, q.answer);
+            filledCount++;
+            filledElements.add(el);
+          }
+        }
+      }
+    }
+  }
+
+  // Trigger file upload selector automatically
   const fileInput = document.querySelector(selectors.file.join(', ')) as HTMLInputElement | null;
   if (fileInput) {
     fileInput.style.border = '2px dashed #8B5CF6';
     fileInput.style.backgroundColor = 'rgba(139, 92, 246, 0.05)';
-    console.log('File upload input highlighted for user action.');
+    console.log('SmartApply: File upload input highlighted for user action.');
+    try {
+      fileInput.click();
+    } catch (e) {
+      console.warn('Could not programmatically trigger file upload selection dialog:', e);
+    }
   }
 
   return {
@@ -276,3 +482,35 @@ function checkApplicationStatus() {
 
 // Run scanner every 3 seconds
 setInterval(checkApplicationStatus, 3000);
+
+// 8. Auto-Sync Settings Presets from Web Application Origin
+if (window.location.hostname.includes('smartapply') || window.location.port === '5173') {
+  const syncLocalSettings = () => {
+    const profileStr = window.localStorage.getItem('sa_autofill_profile');
+    if (profileStr) {
+      try {
+        const profile = JSON.parse(profileStr);
+        chrome.storage.local.set({ autofillProfile: profile }, () => {
+          console.log('SmartApply: Synced profile presets from web app localStorage to extension storage');
+        });
+      } catch (err) {
+        console.error('SmartApply: Local sync error:', err);
+      }
+    }
+  };
+
+  // Sync on load
+  syncLocalSettings();
+
+  // Sync when localStorage is updated
+  window.addEventListener('storage', (e) => {
+    if (e.key === 'sa_autofill_profile') {
+      syncLocalSettings();
+    }
+  });
+
+  // Also sync on click interactions within the page (as fallback when storage event doesn't fire on same frame)
+  document.addEventListener('click', () => {
+    setTimeout(syncLocalSettings, 500);
+  });
+}
