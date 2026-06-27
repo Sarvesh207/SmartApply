@@ -76,7 +76,7 @@ describe('Login Page', () => {
     mockIsPending = true;
     renderWithProviders(<Login />);
 
-    const submitBtn = screen.getByRole('button');
+    const submitBtn = screen.getByRole('button', { name: /sign in/i });
     expect(submitBtn).toBeDisabled();
     expect(submitBtn.querySelector('.animate-spin')).toBeInTheDocument();
   });

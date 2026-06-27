@@ -62,6 +62,15 @@ function detectPortal(): string {
   if (host.includes('lever.co')) return 'Lever';
   if (host.includes('greenhouse.io')) return 'Greenhouse';
   if (host.includes('myworkdayjobs.com')) return 'Workday';
+  if (host.includes('recrew.ai')) return 'Recrew AI';
+  
+  // Clean up hostname for generic sites (e.g. "careers.stripe.com" -> "Stripe")
+  const parts = host.replace('www.', '').split('.');
+  if (parts.length >= 2) {
+    const mainDomain = parts[parts.length - 2];
+    return mainDomain.charAt(0).toUpperCase() + mainDomain.slice(1);
+  }
+  
   return 'General Web Page';
 }
 
@@ -79,7 +88,7 @@ function isFormPresent(): boolean {
     return document.querySelector('[data-automation-id="workdayInbox"]') !== null || document.querySelector('form') !== null;
   }
   
-  return document.querySelector('form') !== null;
+  return document.querySelector('form') !== null || document.querySelectorAll('input[type="text"], input[type="email"], input[type="tel"]').length > 0;
 }
 
 // 4. Fill text field using keyboard events to satisfy dynamic framework hooks (React, Vue)
@@ -145,20 +154,37 @@ chrome.runtime.onMessage.addListener((
   sendResponse: (response?: any) => void
 ) => {
   if (message.type === 'GET_PAGE_STATUS') {
-    sendResponse({
-      portal: detectPortal(),
-      formDetected: isFormPresent()
+    chrome.storage.local.get(['extensionEnabled'], (result) => {
+      if (result.extensionEnabled === false) {
+        sendResponse({
+          portal: detectPortal(),
+          formDetected: false
+        });
+        return;
+      }
+      sendResponse({
+        portal: detectPortal(),
+        formDetected: isFormPresent()
+      });
     });
+    return true; // Keep message channel open for async response
   }
   
   if (message.type === 'START_AUTOFILL') {
-    try {
-      const result = executeAutofill(message.profile);
-      sendResponse(result);
-    } catch (err: any) {
-      console.error('Autofill execution error:', err);
-      sendResponse({ success: false, error: err.message });
-    }
+    chrome.storage.local.get(['extensionEnabled'], (result) => {
+      if (result.extensionEnabled === false) {
+        sendResponse({ success: false, error: 'Extension is disabled' });
+        return;
+      }
+      try {
+        const result = executeAutofill(message.profile);
+        sendResponse(result);
+      } catch (err: any) {
+        console.error('Autofill execution error:', err);
+        sendResponse({ success: false, error: err.message });
+      }
+    });
+    return true; // Keep message channel open for async response
   }
 });
 
@@ -166,9 +192,12 @@ chrome.runtime.onMessage.addListener((
 const sentUpdates = new Map<string, string>();
 
 function checkApplicationStatus() {
-  const url = window.location.href;
-  const portal = detectPortal();
-  const pageText = document.body.innerText || '';
+  chrome.storage.local.get(['extensionEnabled'], (result) => {
+    if (result.extensionEnabled === false) return;
+
+    const url = window.location.href;
+    const portal = detectPortal();
+    const pageText = document.body.innerText || '';
 
   const checkAndSend = (status: 'Expired' | 'Applied') => {
     if (sentUpdates.get(url) === status) return;
@@ -229,6 +258,7 @@ function checkApplicationStatus() {
       return;
     }
   }
+  });
 }
 
 // Run scanner every 3 seconds

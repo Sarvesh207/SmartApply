@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { apiClient } from '../utils/api';
-import { LogIn, Key, Mail, Loader2 } from 'lucide-react';
+import { LogIn, Key, Mail, Loader2, Eye, EyeOff } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -18,6 +18,7 @@ type LoginInputs = z.infer<typeof loginSchema>;
 export default function Login() {
   const setAuth = useAuthStore(state => state.setAuth);
   const navigate = useNavigate();
+  const [showPassword, setShowPassword] = useState(false);
 
   const { register, handleSubmit, formState: { errors } } = useForm<LoginInputs>({
     resolver: zodResolver(loginSchema),
@@ -86,13 +87,24 @@ export default function Login() {
             <div className="relative">
               <Key className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
               <input
-                type="password"
-                className={`w-full pl-10 pr-4 py-3 bg-muted border rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-1 transition-all text-sm ${
+                type={showPassword ? 'text' : 'password'}
+                className={`w-full pl-10 pr-12 py-3 bg-muted border rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-1 transition-all text-sm ${
                   errors.password ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-card-border focus:border-white focus:ring-white/20'
                 }`}
                 placeholder="••••••••"
                 {...register('password')}
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors focus:outline-none"
+              >
+                {showPassword ? (
+                  <EyeOff className="w-5 h-5" />
+                ) : (
+                  <Eye className="w-5 h-5" />
+                )}
+              </button>
             </div>
             {errors.password && (
               <span className="text-red-400 text-xs mt-1 block pl-1">{errors.password.message}</span>
@@ -101,6 +113,7 @@ export default function Login() {
  
           <button
             type="submit"
+            aria-label="Sign In"
             disabled={loginMutation.isPending}
             className="w-full py-3 px-4 btn-primary rounded-xl font-semibold flex items-center justify-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:glow-hover"
           >
