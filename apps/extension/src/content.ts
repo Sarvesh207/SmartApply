@@ -20,6 +20,15 @@ interface ProfileData {
   customQuestions?: { keyword: string; answer: string }[];
 }
 
+function isLegacyDemoProfile(profile: any): boolean {
+  return profile?.email === 'user@example.com' || profile?.fullName === 'John Doe';
+}
+
+function hasUsableProfile(profile: any): boolean {
+  if (!profile || isLegacyDemoProfile(profile)) return false;
+  return Boolean(profile.fullName || profile.email || profile.phone || profile.linkedinUrl || profile.githubUrl);
+}
+
 // 1. Define Selectors Dictionaries
 const selectors = {
   fullName: [
@@ -490,6 +499,7 @@ if (window.location.hostname.includes('smartapply') || window.location.port === 
     if (profileStr) {
       try {
         const profile = JSON.parse(profileStr);
+        if (!hasUsableProfile(profile)) return;
         chrome.storage.local.set({ autofillProfile: profile }, () => {
           console.log('SmartApply: Synced profile presets from web app localStorage to extension storage');
         });
@@ -508,6 +518,8 @@ if (window.location.hostname.includes('smartapply') || window.location.port === 
       syncLocalSettings();
     }
   });
+
+  window.addEventListener('smartapply:autofill-profile-updated', syncLocalSettings);
 
   // Also sync on click interactions within the page (as fallback when storage event doesn't fire on same frame)
   document.addEventListener('click', () => {

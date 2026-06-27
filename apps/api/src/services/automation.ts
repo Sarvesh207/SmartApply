@@ -27,22 +27,20 @@ export async function runAutofill(jobUrl: string, userId: string): Promise<{ suc
 
   // Get auto-fill details from settings or fallback to resume info
   const resume = user.resume;
-  const email = user.email;
-  const fullName = resume ? 'John Doe' : 'Job Seeker'; // Standard mockup name
-  const phone = '+91 98765 43210';
-  const githubUrl = 'https://github.com/developer';
-  const linkedinUrl = 'https://linkedin.com/in/developer';
+  const contactInfo = (resume?.contactInfo ?? {}) as Partial<AutofillData>;
+  const autofillData: AutofillData = {
+    fullName: contactInfo.fullName || '',
+    email: contactInfo.email || user.email,
+    phone: contactInfo.phone || '',
+    githubUrl: contactInfo.githubUrl || '',
+    linkedinUrl: contactInfo.linkedinUrl || '',
+    portfolioUrl: contactInfo.portfolioUrl || '',
+    yearsOfExperience: Number(contactInfo.yearsOfExperience ?? 0),
+  };
   
   // Asynchronously launch browser in headful mode so the user can see it
   // We wrap it in a try-catch and run it in background so the API call doesn't block forever
-  runBrowserScript(jobUrl, {
-    fullName,
-    email,
-    phone,
-    githubUrl,
-    linkedinUrl,
-    yearsOfExperience: 3
-  }, resume?.rawText).catch(err => {
+  runBrowserScript(jobUrl, autofillData, resume?.rawText).catch(err => {
     console.error('Playwright execution error:', err);
   });
 
@@ -89,7 +87,7 @@ async function runBrowserScript(url: string, data: AutofillData, resumeText?: st
       'input[autocomplete*="name" i]', 'input[aria-label*="name" i]'
     ];
     for (const selector of nameSelectors) {
-      if (await page.locator(selector).first().isVisible()) {
+      if (data.fullName && await page.locator(selector).first().isVisible()) {
         await page.locator(selector).first().fill(data.fullName);
         console.log(`Filled Name using selector: ${selector}`);
         break;
@@ -102,7 +100,7 @@ async function runBrowserScript(url: string, data: AutofillData, resumeText?: st
       'input[placeholder*="email" i]', 'input[aria-label*="email" i]'
     ];
     for (const selector of emailSelectors) {
-      if (await page.locator(selector).first().isVisible()) {
+      if (data.email && await page.locator(selector).first().isVisible()) {
         await page.locator(selector).first().fill(data.email);
         console.log(`Filled Email using selector: ${selector}`);
         break;
@@ -115,7 +113,7 @@ async function runBrowserScript(url: string, data: AutofillData, resumeText?: st
       'input[placeholder*="phone" i]', 'input[name*="mobile" i]'
     ];
     for (const selector of phoneSelectors) {
-      if (await page.locator(selector).first().isVisible()) {
+      if (data.phone && await page.locator(selector).first().isVisible()) {
         await page.locator(selector).first().fill(data.phone);
         console.log(`Filled Phone using selector: ${selector}`);
         break;
@@ -128,7 +126,7 @@ async function runBrowserScript(url: string, data: AutofillData, resumeText?: st
       'input[id*="linkedin" i]', 'input[name*="social" i]'
     ];
     for (const selector of linkedinSelectors) {
-      if (await page.locator(selector).first().isVisible()) {
+      if (data.linkedinUrl && await page.locator(selector).first().isVisible()) {
         await page.locator(selector).first().fill(data.linkedinUrl);
         console.log(`Filled LinkedIn using selector: ${selector}`);
         break;
@@ -141,7 +139,7 @@ async function runBrowserScript(url: string, data: AutofillData, resumeText?: st
       'input[id*="github" i]', 'input[name*="portfolio" i]'
     ];
     for (const selector of githubSelectors) {
-      if (await page.locator(selector).first().isVisible()) {
+      if (data.githubUrl && await page.locator(selector).first().isVisible()) {
         await page.locator(selector).first().fill(data.githubUrl);
         console.log(`Filled GitHub using selector: ${selector}`);
         break;
@@ -157,17 +155,18 @@ async function runBrowserScript(url: string, data: AutofillData, resumeText?: st
       'input[type="file"]'
     ];
     
-    // Create a temporary mock resume PDF file
-    const tempDir = os.tmpdir();
-    const tempResumePath = path.join(tempDir, 'SmartApply_Resume.pdf');
-    fs.writeFileSync(tempResumePath, resumeText || 'SmartApply Mock Resume Content - Full Stack Software Engineer');
+    if (resumeText) {
+      const tempDir = os.tmpdir();
+      const tempResumePath = path.join(tempDir, 'SmartApply_Resume.pdf');
+      fs.writeFileSync(tempResumePath, resumeText);
 
-    for (const selector of fileSelectors) {
-      const fileInput = page.locator(selector).first();
-      if (await fileInput.isVisible()) {
-        await fileInput.setInputFiles(tempResumePath);
-        console.log(`Uploaded Resume using selector: ${selector}`);
-        break;
+      for (const selector of fileSelectors) {
+        const fileInput = page.locator(selector).first();
+        if (await fileInput.isVisible()) {
+          await fileInput.setInputFiles(tempResumePath);
+          console.log(`Uploaded Resume using selector: ${selector}`);
+          break;
+        }
       }
     }
 

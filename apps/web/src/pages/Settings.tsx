@@ -79,28 +79,24 @@ export default function Settings() {
         }
       }
 
-      // 3. Fall back to defaults
+      // 3. Fall back to blank user-owned profile defaults
       if (!profileData && user?.email) {
         profileData = {
-          fullName: 'John Doe',
+          fullName: '',
           email: user.email,
-          phone: '+91 98765 43210',
-          location: 'India',
-          yearsOfExperience: 3,
-          portfolioUrl: 'https://portfolio.dev',
-          githubUrl: 'https://github.com/developer',
-          linkedinUrl: 'https://linkedin.com/in/developer',
-          currentCtc: '12',
-          expectedCtc: '18',
-          noticePeriod: '30',
+          phone: '',
+          location: '',
+          yearsOfExperience: 0,
+          portfolioUrl: '',
+          githubUrl: '',
+          linkedinUrl: '',
+          currentCtc: '',
+          expectedCtc: '',
+          noticePeriod: '',
           onNoticePeriod: false,
           lastWorkingDay: '',
-          openToRelocate: true,
-          customQuestions: [
-            { keyword: 'gender', answer: 'Male' },
-            { keyword: 'date of birth', answer: '15/08/1995' },
-            { keyword: 'veteran', answer: 'No' }
-          ]
+          openToRelocate: false,
+          customQuestions: []
         };
       }
 
@@ -149,22 +145,16 @@ export default function Settings() {
       
       // Save locally
       localStorage.setItem('sa_autofill_profile', JSON.stringify(payload));
+      window.dispatchEvent(new CustomEvent('smartapply:autofill-profile-updated'));
       
-      // Sync to remote database
-      try {
-        const resumeData = await apiFetch('/resume');
-        if (resumeData) {
-          await apiFetch('/resume', {
-            method: 'PUT',
-            body: JSON.stringify({
-              ...resumeData,
-              contactInfo: payload
-            })
-          });
-        }
-      } catch (err) {
-        console.warn('Could not sync presets to database server:', err);
-      }
+      // Sync to the user's remote profile. The API will create the profile row
+      // if the user has not uploaded a resume yet.
+      await apiFetch('/resume', {
+        method: 'PUT',
+        body: JSON.stringify({
+          contactInfo: payload
+        })
+      });
     },
     onSuccess: () => {
       setShowSavedMsg(true);

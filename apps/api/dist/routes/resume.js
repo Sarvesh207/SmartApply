@@ -103,20 +103,34 @@ router.put('/', auth_1.authenticateJWT, async (req, res) => {
             return res.status(401).json({ error: 'Unauthorized' });
         }
         const { skills, experience, projects, education, contactInfo } = req.body;
-        const resume = await database_1.prisma.resume.update({
+        const existingResume = await database_1.prisma.resume.findUnique({
             where: { userId },
-            data: {
-                skills,
-                experience,
-                projects,
-                education,
-                contactInfo,
+        });
+        const resume = await database_1.prisma.resume.upsert({
+            where: { userId },
+            update: {
+                ...(skills !== undefined ? { skills } : {}),
+                ...(experience !== undefined ? { experience } : {}),
+                ...(projects !== undefined ? { projects } : {}),
+                ...(education !== undefined ? { education } : {}),
+                ...(contactInfo !== undefined ? { contactInfo } : {}),
+            },
+            create: {
+                userId,
+                skills: skills ?? [],
+                experience: experience ?? [],
+                projects: projects ?? [],
+                education: education ?? [],
+                contactInfo: contactInfo ?? null,
+                rawText: 'Profile created from SmartApply settings',
             },
         });
-        // Clear stale job matches so they can be re-evaluated against the updated profile
-        await database_1.prisma.jobMatch.deleteMany({
-            where: { userId }
-        });
+        if (existingResume && (skills !== undefined || experience !== undefined || projects !== undefined || education !== undefined)) {
+            // Clear stale job matches so they can be re-evaluated against the updated resume.
+            await database_1.prisma.jobMatch.deleteMany({
+                where: { userId }
+            });
+        }
         res.json({
             message: 'Resume profile updated successfully',
             resume,

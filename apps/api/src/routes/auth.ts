@@ -7,6 +7,12 @@ import { authenticateJWT, AuthenticatedRequest } from '../middleware/auth';
 
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'smartapply-secret-key-12345';
+const isProduction = process.env.NODE_ENV === 'production';
+const authCookieOptions = {
+  httpOnly: true,
+  secure: isProduction,
+  sameSite: isProduction ? 'none' as const : 'lax' as const,
+};
 
 const authSchema = z.object({
   email: z.string().email(),
@@ -40,9 +46,7 @@ router.post('/register', async (req: Request, res: Response) => {
 
     // Set HTTP-only Cookie
     res.cookie('sa_token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      ...authCookieOptions,
       maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
     });
 
@@ -85,9 +89,7 @@ router.post('/login', async (req: Request, res: Response) => {
 
     // Set HTTP-only Cookie
     res.cookie('sa_token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      ...authCookieOptions,
       maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
     });
 
@@ -137,9 +139,7 @@ router.get('/me', authenticateJWT, async (req: Request, res: Response) => {
 // POST /auth/logout
 router.post('/logout', (req: Request, res: Response) => {
   res.clearCookie('sa_token', {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    ...authCookieOptions,
   });
   res.json({ success: true, message: 'Logged out successfully' });
 });

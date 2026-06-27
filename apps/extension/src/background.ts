@@ -2,32 +2,12 @@
 
 chrome.runtime.onInstalled.addListener(() => {
   console.log('SmartApply Assistant Installed.');
-  // Initialize default options if not present
+
+  // Remove legacy demo presets so autofill only runs with user-owned data.
   chrome.storage.local.get(['autofillProfile'], (result: { [key: string]: any }) => {
-    if (!result.autofillProfile) {
-      chrome.storage.local.set({
-        autofillProfile: {
-          fullName: 'John Doe',
-          email: 'user@example.com',
-          phone: '+91 98765 43210',
-          location: 'Delhi, India',
-          yearsOfExperience: 3,
-          portfolioUrl: 'https://portfolio.dev',
-          githubUrl: 'https://github.com/developer',
-          linkedinUrl: 'https://linkedin.com/in/developer',
-          currentCtc: '12',
-          expectedCtc: '18',
-          noticePeriod: '30',
-          onNoticePeriod: false,
-          lastWorkingDay: '',
-          openToRelocate: true,
-          customQuestions: [
-            { keyword: 'gender', answer: 'Male' },
-            { keyword: 'date of birth', answer: '15/08/1995' },
-            { keyword: 'veteran', answer: 'No' }
-          ]
-        }
-      });
+    const profile = result.autofillProfile;
+    if (profile?.email === 'user@example.com' || profile?.fullName === 'John Doe') {
+      chrome.storage.local.remove('autofillProfile');
     }
   });
 });
@@ -42,7 +22,9 @@ chrome.runtime.onMessage.addListener((
 ) => {
   if (message.type === 'CHECK_AUTH') {
     // Check if user is logged into the local backend using cookies
-    fetch(`${API_URL}/auth/me`)
+    fetch(`${API_URL}/auth/me`, {
+      credentials: 'include'
+    })
       .then(async (response) => {
         if (response.ok) {
           const data = await response.json();
@@ -59,7 +41,9 @@ chrome.runtime.onMessage.addListener((
   }
   
   if (message.type === 'FETCH_RESUME') {
-    fetch(`${API_URL}/resume`)
+    fetch(`${API_URL}/resume`, {
+      credentials: 'include'
+    })
       .then(async (response) => {
         if (response.ok) {
           const data = await response.json();

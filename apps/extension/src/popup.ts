@@ -11,11 +11,21 @@ document.addEventListener('DOMContentLoaded', async () => {
   let userProfile: any = null;
   let activeTabId: number | null = null;
 
+  function isLegacyDemoProfile(profile: any): boolean {
+    return profile?.email === 'user@example.com' || profile?.fullName === 'John Doe';
+  }
+
+  function hasUsableProfile(profile: any): boolean {
+    if (!profile || isLegacyDemoProfile(profile)) return false;
+    return Boolean(profile.fullName || profile.email || profile.phone || profile.linkedinUrl || profile.githubUrl);
+  }
+
   // Initialize Enable/Disable Toggle from Storage
   chrome.storage.local.get(['extensionEnabled'], (result) => {
     const enabled = result.extensionEnabled !== false;
     powerToggle.checked = enabled;
     updateUI(enabled);
+    renderProfile();
   });
 
   powerToggle.addEventListener('change', () => {
@@ -64,7 +74,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Sync local profile with backend if available
         syncProfileWithBackend();
       } else {
-        connectionStatusEl.textContent = 'Guest Mode (Local Presets)';
+        connectionStatusEl.textContent = 'Sign in to sync profile';
         connectionStatusEl.parentElement?.querySelector('.dot')?.classList.remove('active');
         connectionStatusEl.parentElement?.querySelector('.dot')?.classList.add('warning');
       }
@@ -111,22 +121,35 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   // 3. Sync profile with backend data
-  function syncProfileWithBackend() {
+  function syncProfileWithBackend(callback?: () => void) {
     chrome.runtime.sendMessage({ type: 'FETCH_RESUME' }, (response: any) => {
-      if (response && response.success && response.resume) {
+      if (response && response.success && response.resume?.contactInfo) {
         const resume = response.resume;
         chrome.storage.local.get(['autofillProfile'], (result: { [key: string]: any }) => {
-          const current = result.autofillProfile || {};
+          const current = isLegacyDemoProfile(result.autofillProfile) ? {} : result.autofillProfile || {};
           const updated = {
             ...current,
             ...resume.contactInfo,
             email: userProfile?.email || resume.contactInfo?.email || current.email,
             // Simple mapping from parsed skills if available
-            location: resume.contactInfo?.location || resume.location || current.location || 'India',
+            location: resume.contactInfo?.location || resume.location || current.location || '',
           };
           chrome.storage.local.set({ autofillProfile: updated }, () => {
             console.log('SmartApply: Synced profile presets from backend database');
+            renderProfile();
+            callback?.();
           });
+        });
+      } else {
+        chrome.storage.local.get(['autofillProfile'], (result: { [key: string]: any }) => {
+          if (isLegacyDemoProfile(result.autofillProfile)) {
+            chrome.storage.local.remove('autofillProfile', () => {
+              renderProfile();
+              callback?.();
+            });
+          } else {
+            callback?.();
+          }
         });
       }
     });
@@ -140,10 +163,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     feedbackEl.textContent = 'Scanning and filling fields...';
     feedbackEl.className = 'feedback';
 
-    chrome.storage.local.get(['autofillProfile'], (result: { [key: string]: any }) => {
+    const startAutofill = () => chrome.storage.local.get(['autofillProfile'], (result: { [key: string]: any }) => {
       const profile = result.autofillProfile;
-      if (!profile) {
-        feedbackEl.textContent = 'No profile presets found.';
+      if (!hasUsableProfile(profile)) {
+        feedbackEl.textContent = 'No user profile found. Sign in and save your autofill profile in SmartApply Settings.';
         feedbackEl.className = 'feedback error';
         autofillBtn.disabled = false;
         return;
@@ -167,5 +190,41 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
       });
     });
+
+    syncProfileWithBackend(startAutofill);
   });
+
+  // 5. Render profile details in the popup
+  function renderProfile() {
+    chrome.storage.local.get(['autofillProfile'], (result) => {
+      const profile = result.autofillProfile;
+      const profileCard = document.getElementById('profile-card');
+      if (!profile || !profileCard) return;
+      if (isLegacyDemoProfile(profile)) {
+        chrome.storage.local.remove('autofillProfile');
+        profileCard.style.display = 'none';
+        return;
+      }
+
+      profileCard.style.display = 'flex';
+      
+      document.getElementById('profile-name')!.textContent = profile.fullName || '-';
+      document.getElementById('profile-email')!.textContent = profile.email || '-';
+      document.getElementById('profile-phone')!.textContent = profile.phone || '-';
+      document.getElementById('profile-experience')!.textContent = typeof profile.yearsOfExperience === 'number' ? `${profile.yearsOfExperience} yrs` : '-';
+      document.getElementById('profile-ctc')!.textContent = profile.currentCtc ? `${profile.currentCtc} LPA` : '-';
+      document.getElementById('profile-expected-ctc')!.textContent = profile.expectedCtc ? `${profile.expectedCtc} LPA` : '-';
+      
+      let noticeText = '-';
+      if (profile.onNoticePeriod) {
+        noticeText = `Notice (${profile.noticePeriod || '0'} days)`;
+      } else {
+        noticeText = `Serving (No)`;
+      }
+      document.getElementById('profile-notice')!.textContent = noticeText;
+      
+      const customCount = profile.customQuestions ? profile.customQuestions.length : 0;
+      document.getElementById('profile-custom-count')!.textContent = `${customCount} configured`;
+    });
+  }
 });

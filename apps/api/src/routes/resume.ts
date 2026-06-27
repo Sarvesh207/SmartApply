@@ -110,21 +110,36 @@ router.put('/', authenticateJWT, async (req: AuthenticatedRequest, res: Response
 
     const { skills, experience, projects, education, contactInfo } = req.body;
 
-    const resume = await prisma.resume.update({
+    const existingResume = await prisma.resume.findUnique({
       where: { userId },
-      data: {
-        skills,
-        experience,
-        projects,
-        education,
-        contactInfo,
+    });
+
+    const resume = await prisma.resume.upsert({
+      where: { userId },
+      update: {
+        ...(skills !== undefined ? { skills } : {}),
+        ...(experience !== undefined ? { experience } : {}),
+        ...(projects !== undefined ? { projects } : {}),
+        ...(education !== undefined ? { education } : {}),
+        ...(contactInfo !== undefined ? { contactInfo } : {}),
+      },
+      create: {
+        userId,
+        skills: skills ?? [],
+        experience: experience ?? [],
+        projects: projects ?? [],
+        education: education ?? [],
+        contactInfo: contactInfo ?? null,
+        rawText: 'Profile created from SmartApply settings',
       },
     });
 
-    // Clear stale job matches so they can be re-evaluated against the updated profile
-    await prisma.jobMatch.deleteMany({
-      where: { userId }
-    });
+    if (existingResume && (skills !== undefined || experience !== undefined || projects !== undefined || education !== undefined)) {
+      // Clear stale job matches so they can be re-evaluated against the updated resume.
+      await prisma.jobMatch.deleteMany({
+        where: { userId }
+      });
+    }
 
     res.json({
       message: 'Resume profile updated successfully',

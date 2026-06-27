@@ -11,6 +11,12 @@ const database_1 = require("@smartapply/database");
 const auth_1 = require("../middleware/auth");
 const router = (0, express_1.Router)();
 const JWT_SECRET = process.env.JWT_SECRET || 'smartapply-secret-key-12345';
+const isProduction = process.env.NODE_ENV === 'production';
+const authCookieOptions = {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? 'none' : 'lax',
+};
 const authSchema = zod_1.z.object({
     email: zod_1.z.string().email(),
     password: zod_1.z.string().min(6),
@@ -37,9 +43,7 @@ router.post('/register', async (req, res) => {
         const token = jsonwebtoken_1.default.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
         // Set HTTP-only Cookie
         res.cookie('sa_token', token, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
+            ...authCookieOptions,
             maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
         });
         res.status(201).json({
@@ -77,9 +81,7 @@ router.post('/login', async (req, res) => {
         const token = jsonwebtoken_1.default.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
         // Set HTTP-only Cookie
         res.cookie('sa_token', token, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
+            ...authCookieOptions,
             maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
         });
         res.json({
@@ -126,9 +128,7 @@ router.get('/me', auth_1.authenticateJWT, async (req, res) => {
 // POST /auth/logout
 router.post('/logout', (req, res) => {
     res.clearCookie('sa_token', {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
+        ...authCookieOptions,
     });
     res.json({ success: true, message: 'Logged out successfully' });
 });
