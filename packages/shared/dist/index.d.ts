@@ -15,16 +15,25 @@ export interface ParsedResume {
         company: string;
         duration: string;
         description: string;
+        startDate?: string;
+        endDate?: string;
+        isPresent?: boolean;
     }[];
     projects: {
         name: string;
         description: string;
         technologies: string[];
+        hostedUrl?: string;
+        githubUrl?: string;
     }[];
     education: {
         degree: string;
         institution: string;
         graduationYear: string;
+        startDate?: string;
+        endDate?: string;
+        isPresent?: boolean;
+        grade?: string;
     }[];
 }
 export interface JobMatchResult {

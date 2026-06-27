@@ -140,13 +140,32 @@ export async function matchJobWithResume(
   }
 
   // Calculate user's total years of experience
-  let userYears = 2; // Default
+  let userYears = 0;
+  let hasCalculatedFromDates = false;
   const durationRegex = /(\d+)\s*years?/i;
+
   for (const exp of resume.experience) {
-    const durMatch = exp.duration.match(durationRegex);
-    if (durMatch && durMatch[1]) {
-      userYears += parseInt(durMatch[1], 10);
+    if (exp.startDate && exp.startDate.trim() !== '') {
+      hasCalculatedFromDates = true;
+      const start = new Date(exp.startDate);
+      const end = exp.isPresent ? new Date() : (exp.endDate && exp.endDate.trim() !== '' ? new Date(exp.endDate) : new Date());
+      if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
+        const diffMs = end.getTime() - start.getTime();
+        const diffYears = diffMs / (1000 * 60 * 60 * 24 * 365.25);
+        userYears += diffYears;
+      }
+    } else if (exp.duration) {
+      const durMatch = exp.duration.match(durationRegex);
+      if (durMatch && durMatch[1]) {
+        userYears += parseInt(durMatch[1], 10);
+      }
     }
+  }
+
+  if (!hasCalculatedFromDates && userYears === 0) {
+    userYears = 2; // Default fallback if no years or dates could be processed
+  } else if (hasCalculatedFromDates) {
+    userYears = Math.max(0.5, Math.round(userYears * 10) / 10); // Round to 1 decimal place
   }
 
   const expScore = userYears >= requiredYears ? 30 : (userYears / requiredYears) * 30;
