@@ -16,20 +16,27 @@ interface ProfileData {
 // 1. Define Selectors Dictionaries
 const selectors = {
   fullName: [
+    'input[id="name_field"]',
     'input[name*="name" i]', 'input[id*="name" i]', 'input[placeholder*="name" i]',
     'input[autocomplete*="name" i]', 'input[aria-label*="name" i]'
   ],
   email: [
+    'input[id="email_field"]',
     'input[type="email"]', 'input[name*="email" i]', 'input[id*="email" i]',
     'input[placeholder*="email" i]', 'input[aria-label*="email" i]'
   ],
   phone: [
+    'input[id="phone_number_field_number"]',
+    'input[id="whatsapp_number_field_number"]',
     'input[type="tel"]', 'input[name*="phone" i]', 'input[id*="phone" i]',
-    'input[placeholder*="phone" i]', 'input[name*="mobile" i]', 'input[aria-label*="phone" i]'
+    'input[placeholder*="phone" i]', 'input[name*="mobile" i]', 'input[aria-label*="phone" i]',
+    'input[id*="whatsapp" i]', 'input[placeholder*="whatsapp" i]', 'input[name*="whatsapp" i]'
   ],
   location: [
+    'input[id="current_city_field"]',
     'input[name*="location" i]', 'input[id*="location" i]', 'input[placeholder*="location" i]',
-    'input[placeholder*="city" i]', 'input[name*="city" i]', 'input[aria-label*="location" i]'
+    'input[placeholder*="city" i]', 'input[name*="city" i]', 'input[aria-label*="location" i]',
+    'input[id*="city" i]'
   ],
   linkedin: [
     'input[name*="linkedin" i]', 'input[placeholder*="linkedin" i]',
@@ -106,19 +113,25 @@ function setInputValue(element: HTMLInputElement | HTMLTextAreaElement, value: s
 function executeAutofill(profile: ProfileData) {
   console.log('Autofill engine running with profile:', profile);
   let filledCount = 0;
+  const filledElements = new Set<HTMLElement>();
 
-  // Function helper to search selectors
+  // Function helper to search selectors and fill all matching visible elements
   const fillField = (selectorsList: string[], value: string): boolean => {
+    let filled = false;
     for (const selector of selectorsList) {
-      const el = document.querySelector(selector) as HTMLInputElement | HTMLTextAreaElement | null;
-      if (el && el.offsetParent !== null && !el.value) { // Must be visible and empty
-        setInputValue(el, value);
-        filledCount++;
-        console.log(`Filled selector ${selector} with value: ${value}`);
-        return true;
+      const elements = document.querySelectorAll(selector);
+      for (const el of Array.from(elements) as (HTMLInputElement | HTMLTextAreaElement)[]) {
+        // Ensure element is visible, empty/partially empty, and hasn't been filled in this run
+        if (el && el.offsetParent !== null && (!el.value || el.value.trim() === '') && !filledElements.has(el)) {
+          setInputValue(el, value);
+          filledCount++;
+          filledElements.add(el);
+          console.log(`Filled selector ${selector} with value: ${value}`);
+          filled = true;
+        }
       }
     }
-    return false;
+    return filled;
   };
 
   // Fill standard fields
