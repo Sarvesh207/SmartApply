@@ -68,17 +68,29 @@ export default function App() {
   const [loadingSession, setLoadingSession] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
+
     apiClient.get('/auth/me')
       .then((res) => {
-        setAuth(token || 'cookie-auth', res.data.user);
+        if (!cancelled) {
+          const storedToken = useAuthStore.getState().token;
+          setAuth(storedToken || 'cookie-auth', res.data.user);
+        }
       })
       .catch(() => {
-        logout();
+        if (!cancelled) {
+          logout();
+        }
       })
       .finally(() => {
-        setLoadingSession(false);
+        if (!cancelled) {
+          setLoadingSession(false);
+        }
       });
-  }, [setAuth, logout, token]);
+
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (loadingSession) {
     return (

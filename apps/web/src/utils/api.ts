@@ -37,7 +37,9 @@ apiClient.interceptors.response.use(
     const errMessage = serverMessage || error.message || 'API request failed';
     
     // Automatically log out user if session expired (unauthorized status)
-    if (error.response?.status === 401) {
+    // Skip /auth/me — the App component handles its 401 explicitly to avoid
+    // an infinite redirect loop during initial session validation.
+    if (error.response?.status === 401 && !error.config?.url?.includes('/auth/me')) {
       useAuthStore.getState().logout();
     }
     
