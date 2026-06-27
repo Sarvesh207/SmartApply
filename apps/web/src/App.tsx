@@ -64,13 +64,13 @@ function AppLayout() {
 import { Toaster } from 'react-hot-toast';
 
 export default function App() {
-  const { setAuth, logout } = useAuthStore();
+  const { setAuth, logout, token } = useAuthStore();
   const [loadingSession, setLoadingSession] = useState(true);
 
   useEffect(() => {
     apiClient.get('/auth/me')
       .then((res) => {
-        setAuth('cookie-auth', res.data.user);
+        setAuth(token || 'cookie-auth', res.data.user);
       })
       .catch(() => {
         logout();
@@ -78,7 +78,7 @@ export default function App() {
       .finally(() => {
         setLoadingSession(false);
       });
-  }, [setAuth, logout]);
+  }, [setAuth, logout, token]);
 
   if (loadingSession) {
     return (

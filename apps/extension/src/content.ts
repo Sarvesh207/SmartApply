@@ -492,8 +492,13 @@ function checkApplicationStatus() {
 // Run scanner every 3 seconds
 setInterval(checkApplicationStatus, 3000);
 
-// 8. Auto-Sync Settings Presets from Web Application Origin
-if (window.location.hostname.includes('smartapply') || window.location.port === '5173') {
+// 8. Auto-Sync Settings Presets and Auth from Web Application Origin
+function isSmartApplyWebApp(): boolean {
+  const host = window.location.hostname.toLowerCase();
+  return host.includes('smartapply') || host.includes('smart-apply') || window.location.port === '5173';
+}
+
+if (isSmartApplyWebApp()) {
   const syncLocalSettings = () => {
     const profileStr = window.localStorage.getItem('sa_autofill_profile');
     if (profileStr) {
@@ -509,20 +514,44 @@ if (window.location.hostname.includes('smartapply') || window.location.port === 
     }
   };
 
+  const syncAuthSession = () => {
+    const sessionStr = window.localStorage.getItem('sa_auth_session');
+    if (sessionStr) {
+      try {
+        const session = JSON.parse(sessionStr);
+        if (session?.token && session?.user?.email) {
+          chrome.storage.local.set({ smartApplySession: session }, () => {
+            console.log('SmartApply: Synced auth session from web app to extension storage');
+          });
+        }
+      } catch (err) {
+        console.error('SmartApply: Auth session sync error:', err);
+      }
+    } else {
+      chrome.storage.local.remove('smartApplySession');
+    }
+  };
+
   // Sync on load
   syncLocalSettings();
+  syncAuthSession();
 
   // Sync when localStorage is updated
   window.addEventListener('storage', (e) => {
     if (e.key === 'sa_autofill_profile') {
       syncLocalSettings();
     }
+    if (e.key === 'sa_auth_session') {
+      syncAuthSession();
+    }
   });
 
   window.addEventListener('smartapply:autofill-profile-updated', syncLocalSettings);
+  window.addEventListener('smartapply:auth-session-updated', syncAuthSession);
 
   // Also sync on click interactions within the page (as fallback when storage event doesn't fire on same frame)
   document.addEventListener('click', () => {
     setTimeout(syncLocalSettings, 500);
+    setTimeout(syncAuthSession, 500);
   });
 }

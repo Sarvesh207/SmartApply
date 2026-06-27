@@ -14,6 +14,29 @@ chrome.runtime.onInstalled.addListener(() => {
 
 const API_URL = 'https://smartapply.up.railway.app';
 
+function getStoredSession(): Promise<any | null> {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(['smartApplySession'], (result: { [key: string]: any }) => {
+      resolve(result.smartApplySession || null);
+    });
+  });
+}
+
+async function fetchWithSession(path: string, init: RequestInit = {}) {
+  const session = await getStoredSession();
+  const headers = new Headers(init.headers || {});
+
+  if (session?.token && !headers.has('Authorization')) {
+    headers.set('Authorization', `Bearer ${session.token}`);
+  }
+
+  return fetch(`${API_URL}${path}`, {
+    ...init,
+    headers,
+    credentials: 'include'
+  });
+}
+
 // Relay messages between popup and content scripts
 chrome.runtime.onMessage.addListener((
   message: any,
@@ -21,16 +44,18 @@ chrome.runtime.onMessage.addListener((
   sendResponse: (response?: any) => void
 ) => {
   if (message.type === 'CHECK_AUTH') {
-    // Check if user is logged into the local backend using cookies
-    fetch(`${API_URL}/auth/me`, {
-      credentials: 'include'
-    })
+    fetchWithSession('/auth/me')
       .then(async (response) => {
         if (response.ok) {
           const data = await response.json();
           sendResponse({ authenticated: true, user: data.user });
         } else {
-          sendResponse({ authenticated: false });
+          const session = await getStoredSession();
+          if (session?.user?.email && session?.token) {
+            sendResponse({ authenticated: true, user: session.user });
+          } else {
+            sendResponse({ authenticated: false });
+          }
         }
       })
       .catch((err) => {
@@ -41,9 +66,7 @@ chrome.runtime.onMessage.addListener((
   }
   
   if (message.type === 'FETCH_RESUME') {
-    fetch(`${API_URL}/resume`, {
-      credentials: 'include'
-    })
+    fetchWithSession('/resume')
       .then(async (response) => {
         if (response.ok) {
           const data = await response.json();
