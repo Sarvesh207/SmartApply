@@ -25,6 +25,7 @@ model Resume {
   experience   Json       // stored as array of experience objects
   projects     Json       // stored as array of project objects
   education    Json       // stored as array of education objects
+  contactInfo  Json?      // stored as autofill profile details
   rawText      String?
   fileUrl      String?
   createdAt    DateTime   @default(now())
