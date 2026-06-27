@@ -37,12 +37,13 @@ async function fetchWithSession(path: string, init: RequestInit = {}) {
   });
 }
 
-// Relay messages between popup and content scripts
+// Centralized session and profile synchronization handler
 chrome.runtime.onMessage.addListener((
   message: any,
   sender: chrome.runtime.MessageSender,
   sendResponse: (response?: any) => void
 ) => {
+  // Authentication verification message handler
   if (message.type === 'CHECK_AUTH') {
     fetchWithSession('/auth/me')
       .then(async (response) => {
@@ -62,9 +63,10 @@ chrome.runtime.onMessage.addListener((
         console.error('Auth check failed:', err);
         sendResponse({ authenticated: false, error: 'Could not connect to server' });
       });
-    return true; // Keep message channel open for async response
+    return true;
   }
-  
+
+  // Resume data fetch with synchronized authentication
   if (message.type === 'FETCH_RESUME') {
     fetchWithSession('/resume')
       .then(async (response) => {
@@ -82,8 +84,9 @@ chrome.runtime.onMessage.addListener((
     return true;
   }
 
+  // Application status update using URL-based identification
   if (message.type === 'UPDATE_STATUS_BY_URL') {
-    fetch(`${API_URL}/applications/status-by-url`, {
+    fetchWithSession('/applications/status-by-url', {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json'
@@ -108,4 +111,43 @@ chrome.runtime.onMessage.addListener((
       });
     return true;
   }
+
+  // New: Handle AUTHENTICATED_PROFILE event from content script
+  if (message.type === 'AUTHENTICATED_PROFILE') {
+    const profile = message.profile;
+    chrome.storage.local.get(['smartApplySession'], (result) => {
+      const session = result.smartApplySession;
+      if (session?.token && isUsableProfile(profile)) {
+        chrome.storage.local.set({ autofillProfile: profile }, () => {
+          console.log('SmartApply: Profile from content script synced to extension storage');
+          sendResponse({ success: true });
+        });
+      } else {
+        sendResponse({ success: false, error: 'Missing session or invalid profile' });
+      }
+    });
+    return true;
+  }
+
+  // New: Handle UI_READY event from content script
+  if (message.type === 'UI_READY') {
+    chrome.storage.local.get(['autofillProfile'], (result) => {
+      if (result.autofillProfile && isUsableProfile(result.autofillProfile) && sender.tab?.id) {
+        chrome.tabs.sendMessage(sender.tab.id, {
+          type: 'START_AUTOFILL',
+          profile: result.autofillProfile
+        });
+      }
+    });
+    sendResponse({ success: true });
+  }
 });
+
+// Helper function (defined after listeners to maintain scope)
+function isUsableProfile(profile: any): boolean {
+  if (!profile) return false;
+  if (profile.email === 'user@example.com' || profile.fullName === 'John Doe') {
+    return false;
+  }
+  return Boolean(profile.fullName || profile.email || profile.phone || profile.linkedinUrl || profile.githubUrl);
+}

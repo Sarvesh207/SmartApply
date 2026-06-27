@@ -17,7 +17,8 @@ import {
   Loader2,
   CheckCircle,
   Building,
-  SearchCode
+  SearchCode,
+  Trash2
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -51,6 +52,7 @@ export default function Jobs() {
     location: '',
     source: '',
   });
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   const { register, handleSubmit } = useForm<FilterInputs>({
     resolver: zodResolver(filterSchema),
@@ -101,6 +103,23 @@ export default function Jobs() {
     },
     onError: (err: any) => {
       toast.error(err.message || 'Failed to save job');
+    }
+  });
+
+  // Mutation to delete job
+  const deleteJobMutation = useMutation({
+    mutationFn: (jobId: string) =>
+      apiFetch(`/jobs/${jobId}`, {
+        method: 'DELETE',
+      }),
+    onSuccess: () => {
+      toast.success('Job deleted successfully');
+      queryClient.invalidateQueries({ queryKey: ['jobs'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+      setDeleteConfirmId(null);
+    },
+    onError: (err: any) => {
+      toast.error(err.message || 'Failed to delete job');
     }
   });
 
@@ -238,6 +257,9 @@ export default function Jobs() {
                       <span className="bg-white/5 px-2 py-0.5 rounded text-[10px] uppercase font-bold text-gray-400 border border-white/5">
                         {job.source}
                       </span>
+                      <span className="text-[10px] text-neutral-500 font-sans">
+                        Scraped: {new Date(job.scrapedAt).toLocaleDateString()}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -285,6 +307,32 @@ export default function Jobs() {
                     >
                       <ExternalLink className="w-4 h-4" />
                     </a>
+
+                    {/* Delete Job Button */}
+                    {deleteConfirmId === job.id ? (
+                      <div className="flex items-center gap-1 z-20">
+                        <button
+                          onClick={() => deleteJobMutation.mutate(job.id)}
+                          className="px-2 py-1 bg-red-600 hover:bg-red-700 text-white rounded-lg text-[9px] font-bold"
+                        >
+                          Yes
+                        </button>
+                        <button
+                          onClick={() => setDeleteConfirmId(null)}
+                          className="px-2 py-1 bg-white/10 hover:bg-white/20 text-white rounded-lg text-[9px]"
+                        >
+                          No
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setDeleteConfirmId(job.id)}
+                        className="p-2 bg-white/5 hover:bg-red-500/15 border border-white/5 hover:border-red-500/20 text-gray-500 hover:text-red-400 rounded-xl transition-all"
+                        title="Delete Job"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>

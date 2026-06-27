@@ -28,6 +28,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderProfile();
   });
 
+  // Listen for real-time storage changes to update connection and profile views instantly
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === 'local' && (changes.autofillProfile || changes.smartApplySession)) {
+      renderProfile();
+      checkAuth();
+    }
+  });
+
   powerToggle.addEventListener('change', () => {
     const enabled = powerToggle.checked;
     chrome.storage.local.set({ extensionEnabled: enabled }, () => {

@@ -263,4 +263,18 @@ router.post('/trigger-scrape', authenticateJWT, async (req: AuthenticatedRequest
   }
 });
 
+// DELETE /jobs/:id
+router.delete('/:id', authenticateJWT, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    await prisma.job.delete({
+      where: { id }
+    });
+    res.json({ message: 'Job deleted successfully' });
+  } catch (error) {
+    console.error('Delete job error:', error);
+    res.status(500).json({ error: 'Failed to delete job' });
+  }
+});
+
 export default router;

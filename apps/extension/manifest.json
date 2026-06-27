@@ -1,0 +1,67 @@
+{
+  "manifest_version": 3,
+  "name": "SmartApply Assistant",
+  "version": "1.0.0",
+  "description": "AI-powered job application auto-filler and status tracker for LinkedIn, Indeed, and other job portals",
+  
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "SmartApply Assistant"
+  },
+  
+  "background": {
+    "service_worker": "background.js"
+  },
+  
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.linkedin.com/*",
+        "https://*.indeed.com/*",
+        "https://*.greenhouse.io/*",
+        "https://*.lever.co/*",
+        "https://*.myworkdayjobs.com/*",
+        "https://*.recrew.ai/*",
+        "http://localhost:5173/*",
+        "https://*/*",
+        "http://*/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_start",
+      "all_frames": true
+    }
+  ],
+  
+  "permissions": [
+    "storage",
+    "scripting"
+  ],
+  
+  "host_permissions": [
+    "https://*.linkedin.com/",
+    "https://*.indeed.com/",
+    "https://*.greenhouse.io/",
+    "https://*.lever.co/",
+    "https://*.myworkdayjobs.com/",
+    "https://*.recrew.ai/",
+    "https://smartapply.up.railway.app/",
+    "http://localhost:5000/"
+  ],
+
+  
+  "web_accessible_resources": [
+    {
+      "resources": ["content.js", "background.js", "popup.js"],
+      "matches": [
+        "https://*.linkedin.com/*",
+        "https://*.indeed.com/*",
+        "https://*.greenhouse.io/*",
+        "https://*.lever.co/*",
+        "https://*.myworkdayjobs.com/*",
+        "https://*.recrew.ai/*"
+      ]
+    }
+  ],
+  
+  "minimum_chrome_version": "108"
+}

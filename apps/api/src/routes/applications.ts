@@ -73,6 +73,8 @@ router.get('/', authenticateJWT, async (req: AuthenticatedRequest, res: Response
     const status = req.query.status as string || '';
     const sort = req.query.sort as string || 'updatedAt';
     const order = (req.query.order as string) === 'asc' ? 'asc' : 'desc';
+    const startDateStr = req.query.startDate as string || '';
+    const endDateStr = req.query.endDate as string || '';
 
     // 5. Apply filtering
     let filtered = applicationsWithScores;
@@ -88,6 +90,21 @@ router.get('/', authenticateJWT, async (req: AuthenticatedRequest, res: Response
           app.job.location.toLowerCase().includes(searchLower) ||
           (app.notes && app.notes.toLowerCase().includes(searchLower))
         );
+      });
+    }
+    if (startDateStr) {
+      const start = new Date(startDateStr);
+      filtered = filtered.filter(app => {
+        const date = app.appliedAt ? new Date(app.appliedAt) : new Date(app.createdAt);
+        return date >= start;
+      });
+    }
+    if (endDateStr) {
+      const end = new Date(endDateStr);
+      end.setHours(23, 59, 59, 999);
+      filtered = filtered.filter(app => {
+        const date = app.appliedAt ? new Date(app.appliedAt) : new Date(app.createdAt);
+        return date <= end;
       });
     }
 

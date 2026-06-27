@@ -269,5 +269,19 @@ router.post('/trigger-scrape', auth_1.authenticateJWT, async (req, res) => {
         res.status(500).json({ error: 'Failed to trigger scraper task' });
     }
 });
+// DELETE /jobs/:id
+router.delete('/:id', auth_1.authenticateJWT, async (req, res) => {
+    try {
+        const { id } = req.params;
+        await database_1.prisma.job.delete({
+            where: { id }
+        });
+        res.json({ message: 'Job deleted successfully' });
+    }
+    catch (error) {
+        console.error('Delete job error:', error);
+        res.status(500).json({ error: 'Failed to delete job' });
+    }
+});
 exports.default = router;
 //# sourceMappingURL=jobs.js.map

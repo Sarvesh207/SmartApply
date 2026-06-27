@@ -24,11 +24,6 @@ function isLegacyDemoProfile(profile: any): boolean {
   return profile?.email === 'user@example.com' || profile?.fullName === 'John Doe';
 }
 
-function hasUsableProfile(profile: any): boolean {
-  if (!profile || isLegacyDemoProfile(profile)) return false;
-  return Boolean(profile.fullName || profile.email || profile.phone || profile.linkedinUrl || profile.githubUrl);
-}
-
 // 1. Define Selectors Dictionaries
 const selectors = {
   fullName: [
@@ -499,59 +494,124 @@ function isSmartApplyWebApp(): boolean {
 }
 
 if (isSmartApplyWebApp()) {
-  const syncLocalSettings = () => {
-    const profileStr = window.localStorage.getItem('sa_autofill_profile');
-    if (profileStr) {
-      try {
-        const profile = JSON.parse(profileStr);
-        if (!hasUsableProfile(profile)) return;
-        chrome.storage.local.set({ autofillProfile: profile }, () => {
-          console.log('SmartApply: Synced profile presets from web app localStorage to extension storage');
-        });
-      } catch (err) {
-        console.error('SmartApply: Local sync error:', err);
+    // Determine central user data sources and sync scheduling
+  function syncWithMasterState(profile: ProfileData | null, session: any | null) {
+    chrome.storage.local.set({
+      autofillProfile: profile,
+      smartApplySession: session
+    }, () => {
+      if (profile && !isLegacyDemoProfile(profile)) {
+        chrome.runtime.sendMessage({ type: 'AUTHENTICATED_PROFILE', profile });
       }
-    }
-  };
+    });
+  }
 
-  const syncAuthSession = () => {
-    const sessionStr = window.localStorage.getItem('sa_auth_session');
-    if (sessionStr) {
-      try {
-        const session = JSON.parse(sessionStr);
-        if (session?.token && session?.user?.email) {
-          chrome.storage.local.set({ smartApplySession: session }, () => {
-            console.log('SmartApply: Synced auth session from web app to extension storage');
-          });
-        }
-      } catch (err) {
-        console.error('SmartApply: Auth session sync error:', err);
-      }
-    } else {
+  function isUsableProfile(profile: any): boolean {
+    if (!profile) return false;
+    if (isLegacyDemoProfile(profile)) return false;
+    return Boolean(profile.fullName || profile.email || profile.phone || profile.linkedinUrl || profile.githubUrl);
+  }
+
+  const syncFromWebApp = () => {
+    const webProfileStr = window.localStorage.getItem('sa_autofill_profile');
+    const webSessionStr = window.localStorage.getItem('sa_auth_session');
+
+    const webProfile = webProfileStr ? JSON.parse(webProfileStr) : null;
+    const webSession = webSessionStr ? JSON.parse(webSessionStr) : null;
+
+    if (!webProfile || isLegacyDemoProfile(webProfile)) {
+      chrome.storage.local.remove('autofillProfile');
+    }
+    if (!webSession?.token || !webSession?.user?.email) {
       chrome.storage.local.remove('smartApplySession');
     }
+
+    syncWithMasterState(webProfile, webSession);
   };
 
-  // Sync on load
-  syncLocalSettings();
-  syncAuthSession();
+  // Chain sync events to orchestrate bi-directional coordination between service boundaries
+  const orchestrateSyncLifecycle = () => {
+    const initialSync = () => {
+      syncFromWebApp();
+      setTimeout(establishSyncInfrastructure, 500);
+    };
 
-  // Sync when localStorage is updated
-  window.addEventListener('storage', (e) => {
-    if (e.key === 'sa_autofill_profile') {
-      syncLocalSettings();
-    }
-    if (e.key === 'sa_auth_session') {
-      syncAuthSession();
+    const adaptToStorageChanges = (e: StorageEvent) => {
+      if (e.key === 'sa_autofill_profile' || e.key === 'sa_auth_session') {
+        setTimeout(syncFromWebApp, 100);
+      }
+    };
+
+    // Initialize initial sync sequence
+    initialSync();
+
+    // Establish listener for storage modification events
+    window.addEventListener('storage', adaptToStorageChanges);
+
+    // Establish real-time event listener for profile and session update notifications
+    window.addEventListener('smartapply:autofill-profile-updated', syncFromWebApp);
+    window.addEventListener('smartapply:auth-session-updated', syncFromWebApp);
+
+    // Provide click-capture async feedback to prevent race conditions
+    document.addEventListener('click', () => {
+      setTimeout(syncFromWebApp, 200);
+    });
+  };
+
+  const establishSyncInfrastructure = () => {
+    syncFromWebApp();
+    setUIReady();
+  };
+
+  // Initialize sync lifecycle immediately to capture page login/profile data
+  orchestrateSyncLifecycle();
+}
+
+// 9. Declarative user awareness status reporting
+function setUIReady() {
+  const state = {
+    synced: true,
+    timestamp: new Date().toISOString()
+  };
+  chrome.storage.local.set({ uiReady: state }, () => {
+    chrome.runtime.sendMessage({
+      type: 'UI_READY',
+      state
+    });
+    console.log('SmartApply: UI Ready state reported - extension is operational');
+  });
+}
+
+// Dev environment port utilization marker
+if (window.location.hostname === 'localhost' && window.location.port === '5173') {
+  console.log('SmartApply: Web app environment detected - initializing sync infrastructure');
+  setUIReady();
+}
+
+// 10. Automated Autofill Trigger Polling
+let autoFillAttempted = false;
+let lastPolledUrl = window.location.href;
+
+function pollForAutoFill() {
+  const currentUrl = window.location.href;
+  if (currentUrl !== lastPolledUrl) {
+    lastPolledUrl = currentUrl;
+    autoFillAttempted = false;
+  }
+
+  if (isSmartApplyWebApp() || autoFillAttempted) return;
+  
+  chrome.storage.local.get(['extensionEnabled'], (result) => {
+    if (result.extensionEnabled === false) return;
+    
+    if (isFormPresent()) {
+      autoFillAttempted = true;
+      console.log('SmartApply: Form detected on portal. Requesting auto-fill...');
+      setUIReady();
     }
   });
+}
 
-  window.addEventListener('smartapply:autofill-profile-updated', syncLocalSettings);
-  window.addEventListener('smartapply:auth-session-updated', syncAuthSession);
-
-  // Also sync on click interactions within the page (as fallback when storage event doesn't fire on same frame)
-  document.addEventListener('click', () => {
-    setTimeout(syncLocalSettings, 500);
-    setTimeout(syncAuthSession, 500);
-  });
+if (!isSmartApplyWebApp()) {
+  setInterval(pollForAutoFill, 1500);
 }

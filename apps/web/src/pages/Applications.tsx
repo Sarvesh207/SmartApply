@@ -76,6 +76,8 @@ export default function Applications() {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [page, setPage] = useState(1);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   
   // Sorting State
   const [sortColumn, setSortColumn] = useState<'title' | 'company' | 'location' | 'scrapedAt' | 'appliedAt' | 'matchScore'>('appliedAt');
@@ -114,8 +116,8 @@ export default function Applications() {
 
   // Fetch applications
   const { data, isLoading, error } = useQuery<FetchApplicationsResponse>({
-    queryKey: ['applications', page, activeTab, debouncedSearch, sortColumn, sortDirection],
-    queryFn: () => apiFetch(`/applications?page=${page}&limit=10&status=${activeTab}&search=${debouncedSearch}&sort=${sortColumn}&order=${sortDirection}`),
+    queryKey: ['applications', page, activeTab, debouncedSearch, sortColumn, sortDirection, startDate, endDate],
+    queryFn: () => apiFetch(`/applications?page=${page}&limit=10&status=${activeTab}&search=${debouncedSearch}&sort=${sortColumn}&order=${sortDirection}&startDate=${startDate}&endDate=${endDate}`),
   });
 
   const applications = data?.applications || [];
@@ -320,16 +322,60 @@ export default function Applications() {
           ))}
         </div>
 
-        {/* Search Input Filter */}
-        <div className="flex max-w-md relative">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-          <input
-            type="text"
-            className="w-full pl-10 pr-4 py-2.5 bg-muted/60 border border-card-border rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-white text-xs shadow-inner"
-            placeholder="Search company, title, location, or notes..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+        {/* Search & Date Filters */}
+        <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
+          {/* Search Input Filter */}
+          <div className="flex-1 max-w-md relative w-full">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+            <input
+              type="text"
+              className="w-full pl-10 pr-4 py-2.5 bg-muted/60 border border-card-border rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-white text-xs shadow-inner"
+              placeholder="Search company, title, location, or notes..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+
+          {/* Date Filters */}
+          <div className="flex items-center gap-2 text-[10px] w-full md:w-auto">
+            <div className="flex items-center gap-1.5 bg-muted/40 px-3 py-2 rounded-xl border border-white/5">
+              <span className="text-gray-500 font-semibold uppercase">From:</span>
+              <input
+                type="date"
+                className="bg-transparent border-0 text-white focus:outline-none font-sans text-xs w-28"
+                value={startDate}
+                onChange={(e) => {
+                  setStartDate(e.target.value);
+                  setPage(1);
+                }}
+              />
+            </div>
+            <div className="flex items-center gap-1.5 bg-muted/40 px-3 py-2 rounded-xl border border-white/5">
+              <span className="text-gray-500 font-semibold uppercase">To:</span>
+              <input
+                type="date"
+                className="bg-transparent border-0 text-white focus:outline-none font-sans text-xs w-28"
+                value={endDate}
+                onChange={(e) => {
+                  setEndDate(e.target.value);
+                  setPage(1);
+                }}
+              />
+            </div>
+            {(startDate || endDate) && (
+              <button
+                onClick={() => {
+                  setStartDate('');
+                  setEndDate('');
+                  setPage(1);
+                }}
+                className="p-2 hover:bg-white/5 rounded-xl text-gray-400 hover:text-white transition-colors border border-white/5"
+                title="Clear Dates"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
