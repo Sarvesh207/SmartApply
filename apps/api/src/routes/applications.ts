@@ -199,7 +199,17 @@ router.post('/', authenticateJWT, async (req: AuthenticatedRequest, res: Respons
     });
 
     if (existing) {
-      return res.status(400).json({ error: 'You have already added this job to your applications list' });
+      const updatedApplication = await prisma.application.update({
+        where: { id: existing.id },
+        data: {
+          status,
+          appliedAt: status === 'Applied' && !existing.appliedAt ? new Date() : existing.appliedAt,
+        },
+        include: {
+          job: true,
+        },
+      });
+      return res.status(200).json(updatedApplication);
     }
 
     const application = await prisma.application.create({

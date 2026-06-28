@@ -48,6 +48,10 @@ model Job {
   isExpired    Boolean       @default(false)
   matches      JobMatch[]
   applications Application[]
+
+  @@index([datePosted])
+  @@index([location])
+  @@index([source])
 }
 
 model JobMatch {

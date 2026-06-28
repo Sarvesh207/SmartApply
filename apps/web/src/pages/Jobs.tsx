@@ -16,6 +16,7 @@ import {
   ChevronRight,
   Loader2,
   CheckCircle,
+  Check,
   Building,
   SearchCode,
   Trash2
@@ -39,6 +40,8 @@ const filterSchema = z.object({
   search: z.string().optional().default(''),
   location: z.string().optional().default(''),
   source: z.string().optional().default(''),
+  dateRange: z.string().optional().default(''),
+  statusFilter: z.string().optional().default(''),
 });
 
 type FilterInputs = z.infer<typeof filterSchema>;
@@ -51,6 +54,8 @@ export default function Jobs() {
     search: '',
     location: '',
     source: '',
+    dateRange: '',
+    statusFilter: '',
   });
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
@@ -60,14 +65,16 @@ export default function Jobs() {
       search: '',
       location: '',
       source: '',
+      dateRange: '',
+      statusFilter: '',
     }
   });
   
   // Query to fetch jobs
   const { data, isLoading, error } = useQuery<FetchJobsResponse>({
-    queryKey: ['jobs', page, appliedFilters.search, appliedFilters.source, appliedFilters.location],
+    queryKey: ['jobs', page, appliedFilters.search, appliedFilters.source, appliedFilters.location, appliedFilters.dateRange, appliedFilters.statusFilter],
     queryFn: () => 
-      apiFetch(`/jobs?page=${page}&limit=10&search=${appliedFilters.search}&source=${appliedFilters.source}&location=${appliedFilters.location}`),
+      apiFetch(`/jobs?page=${page}&limit=10&search=${appliedFilters.search}&source=${appliedFilters.source}&location=${appliedFilters.location}&dateRange=${appliedFilters.dateRange}&statusFilter=${appliedFilters.statusFilter}`),
   });
 
   // Mutation to run job matching
@@ -89,20 +96,25 @@ export default function Jobs() {
     }
   });
 
-  // Mutation to save job
+  // Mutation to save or apply job
   const saveMutation = useMutation({
-    mutationFn: (jobId: string) =>
+    mutationFn: ({ jobId, status }: { jobId: string; status: 'Saved' | 'Applied' }) =>
       apiFetch('/applications', {
         method: 'POST',
-        body: JSON.stringify({ jobId, status: 'Saved' }),
+        body: JSON.stringify({ jobId, status }),
       }),
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['jobs'] });
       queryClient.invalidateQueries({ queryKey: ['applications'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
-      toast.success('Job successfully saved to Applications board!');
+      if (variables.status === 'Applied') {
+        toast.success('Job successfully marked as Applied!');
+      } else {
+        toast.success('Job successfully saved to Applications board!');
+      }
     },
     onError: (err: any) => {
-      toast.error(err.message || 'Failed to save job');
+      toast.error(err.message || 'Failed to update job application status');
     }
   });
 
@@ -169,7 +181,7 @@ export default function Jobs() {
       </div>
 
       {/* Filters form */}
-      <form onSubmit={handleSubmit(handleSearchSubmit)} className="glass-panel p-6 rounded-2xl border border-white/5 shadow-xl grid grid-cols-1 md:grid-cols-4 gap-4">
+      <form onSubmit={handleSubmit(handleSearchSubmit)} className="glass-panel p-6 rounded-2xl border border-white/5 shadow-xl grid grid-cols-1 md:grid-cols-6 gap-4 animate-fade-in">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
           <input
@@ -198,6 +210,30 @@ export default function Jobs() {
             <option value="">All Sources</option>
             <option value="linkedin">LinkedIn</option>
             <option value="indeed">Indeed</option>
+          </select>
+        </div>
+
+        <div>
+          <select
+            className="w-full px-4 py-2 bg-muted border border-card-border rounded-xl text-white focus:outline-none focus:border-white text-sm"
+            {...register('dateRange')}
+          >
+            <option value="">Any time</option>
+            <option value="24h">Past 24 hours</option>
+            <option value="3d">Past 3 days</option>
+            <option value="7d">Past week</option>
+            <option value="30d">Past month</option>
+          </select>
+        </div>
+
+        <div>
+          <select
+            className="w-full px-4 py-2 bg-muted border border-card-border rounded-xl text-white focus:outline-none focus:border-white text-sm"
+            {...register('statusFilter')}
+          >
+            <option value="">All Jobs</option>
+            <option value="not_added">Not Added</option>
+            <option value="added">Added to Board</option>
           </select>
         </div>
 
@@ -291,18 +327,70 @@ export default function Jobs() {
 
                   {/* Actions */}
                   <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => saveMutation.mutate(job.id)}
-                      className="p-2 bg-white/5 hover:bg-white/15 border border-white/5 text-gray-300 rounded-xl transition-all"
-                      title="Save Job"
-                    >
-                      <Plus className="w-4 h-4" />
-                    </button>
+                    {job.isApplied ? (
+                      job.applicationStatus === 'Saved' ? (
+                        <>
+                          <span 
+                            className="px-3 py-2 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-xl text-[10px] uppercase font-bold flex items-center gap-1.5 shadow-sm shrink-0"
+                            title="Status: Saved"
+                          >
+                            Saved
+                          </span>
+                          <button
+                            disabled={saveMutation.isPending && saveMutation.variables?.jobId === job.id}
+                            onClick={() => saveMutation.mutate({ jobId: job.id, status: 'Applied' })}
+                            className="p-2 bg-white/5 hover:bg-white/15 border border-white/5 text-gray-300 hover:text-white rounded-xl transition-all disabled:opacity-50"
+                            title="Mark as Applied"
+                          >
+                            {saveMutation.isPending && saveMutation.variables?.jobId === job.id && saveMutation.variables?.status === 'Applied' ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Check className="w-4 h-4" />
+                            )}
+                          </button>
+                        </>
+                      ) : (
+                        <span 
+                          className="px-3 py-2 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-xl text-[10px] uppercase font-bold flex items-center gap-1.5 shadow-sm shrink-0"
+                          title={`Status: ${job.applicationStatus}`}
+                        >
+                          <CheckCircle className="w-3.5 h-3.5" />
+                          {job.applicationStatus}
+                        </span>
+                      )
+                    ) : (
+                      <>
+                        <button
+                          disabled={saveMutation.isPending && saveMutation.variables?.jobId === job.id}
+                          onClick={() => saveMutation.mutate({ jobId: job.id, status: 'Saved' })}
+                          className="p-2 bg-white/5 hover:bg-white/15 border border-white/5 text-gray-300 hover:text-white rounded-xl transition-all disabled:opacity-50"
+                          title="Save Job"
+                        >
+                          {saveMutation.isPending && saveMutation.variables?.jobId === job.id && saveMutation.variables?.status === 'Saved' ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Plus className="w-4 h-4" />
+                          )}
+                        </button>
+                        <button
+                          disabled={saveMutation.isPending && saveMutation.variables?.jobId === job.id}
+                          onClick={() => saveMutation.mutate({ jobId: job.id, status: 'Applied' })}
+                          className="p-2 bg-white/5 hover:bg-white/15 border border-white/5 text-gray-300 hover:text-white rounded-xl transition-all disabled:opacity-50"
+                          title="Mark as Applied"
+                        >
+                          {saveMutation.isPending && saveMutation.variables?.jobId === job.id && saveMutation.variables?.status === 'Applied' ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Check className="w-4 h-4" />
+                          )}
+                        </button>
+                      </>
+                    )}
                     <a
                       href={job.jobUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="p-2 bg-white/5 hover:bg-white/15 border border-white/5 text-gray-300 rounded-xl transition-all"
+                      className="p-2 bg-white/5 hover:bg-white/15 border border-white/5 text-gray-300 hover:text-white rounded-xl transition-all"
                       title="Open Job Link"
                     >
                       <ExternalLink className="w-4 h-4" />

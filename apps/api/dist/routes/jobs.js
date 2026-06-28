@@ -69,24 +69,65 @@ router.get('/', async (req, res) => {
         const search = req.query.search || '';
         const source = req.query.source || '';
         const location = req.query.location || '';
+        const dateRange = req.query.dateRange || '';
+        const statusFilter = req.query.statusFilter || '';
         const skip = (page - 1) * limit;
         // Build prisma query filters
         const where = {};
+        const andClauses = [];
         if (search) {
-            where.OR = [
-                { title: { contains: search, mode: 'insensitive' } },
-                { company: { contains: search, mode: 'insensitive' } },
-                { description: { contains: search, mode: 'insensitive' } },
-            ];
+            andClauses.push({
+                OR: [
+                    { title: { contains: search, mode: 'insensitive' } },
+                    { company: { contains: search, mode: 'insensitive' } },
+                    { description: { contains: search, mode: 'insensitive' } },
+                ]
+            });
         }
         if (source) {
-            where.source = source;
+            andClauses.push({ source });
         }
         if (location) {
-            where.location = { contains: location, mode: 'insensitive' };
+            andClauses.push({ location: { contains: location, mode: 'insensitive' } });
         }
-        // Fetch jobs
-        const [jobs, total] = await database_1.prisma.$transaction([
+        if (dateRange) {
+            const limitDate = new Date();
+            if (dateRange === '24h')
+                limitDate.setHours(limitDate.getHours() - 24);
+            else if (dateRange === '3d')
+                limitDate.setDate(limitDate.getDate() - 3);
+            else if (dateRange === '7d')
+                limitDate.setDate(limitDate.getDate() - 7);
+            else if (dateRange === '30d')
+                limitDate.setDate(limitDate.getDate() - 30);
+            andClauses.push({
+                OR: [
+                    { datePosted: { gte: limitDate } },
+                    { datePosted: null, scrapedAt: { gte: limitDate } }
+                ]
+            });
+        }
+        if (userId && statusFilter) {
+            if (statusFilter === 'added') {
+                andClauses.push({
+                    applications: {
+                        some: { userId }
+                    }
+                });
+            }
+            else if (statusFilter === 'not_added') {
+                andClauses.push({
+                    applications: {
+                        none: { userId }
+                    }
+                });
+            }
+        }
+        if (andClauses.length > 0) {
+            where.AND = andClauses;
+        }
+        // Fetch jobs in parallel
+        const [jobs, total] = await Promise.all([
             database_1.prisma.job.findMany({
                 where,
                 skip,
@@ -95,22 +136,34 @@ router.get('/', async (req, res) => {
             }),
             database_1.prisma.job.count({ where }),
         ]);
-        // If user is logged in, attach their job matches
+        // If user is logged in, attach their job matches and applications
         let jobsWithScores = jobs.map(job => ({
             ...job,
             matchScore: null,
             matchDetails: null,
+            isApplied: false,
+            applicationStatus: null,
         }));
         if (userId) {
-            const matches = await database_1.prisma.jobMatch.findMany({
-                where: {
-                    userId,
-                    jobId: { in: jobs.map(j => j.id) },
-                },
-            });
+            const [matches, applications] = await Promise.all([
+                database_1.prisma.jobMatch.findMany({
+                    where: {
+                        userId,
+                        jobId: { in: jobs.map(j => j.id) },
+                    },
+                }),
+                database_1.prisma.application.findMany({
+                    where: {
+                        userId,
+                        jobId: { in: jobs.map(j => j.id) },
+                    },
+                }),
+            ]);
             const matchMap = new Map(matches.map(m => [m.jobId, m]));
+            const appMap = new Map(applications.map(a => [a.jobId, a]));
             jobsWithScores = jobs.map(job => {
                 const match = matchMap.get(job.id);
+                const app = appMap.get(job.id);
                 return {
                     ...job,
                     matchScore: match ? match.matchScore : null,
@@ -120,6 +173,8 @@ router.get('/', async (req, res) => {
                         missingSkills: match.missingSkills,
                         recommendation: match.recommendation,
                     } : null,
+                    isApplied: !!app,
+                    applicationStatus: app ? app.status : null,
                 };
             });
         }
@@ -150,15 +205,26 @@ router.get('/:id', async (req, res) => {
             return res.status(404).json({ error: 'Job not found' });
         }
         let matchDetails = null;
+        let applicationStatus = null;
         if (userId) {
-            const match = await database_1.prisma.jobMatch.findUnique({
-                where: {
-                    jobId_userId: {
-                        jobId: id,
-                        userId,
+            const [match, app] = await Promise.all([
+                database_1.prisma.jobMatch.findUnique({
+                    where: {
+                        jobId_userId: {
+                            jobId: id,
+                            userId,
+                        },
                     },
-                },
-            });
+                }),
+                database_1.prisma.application.findUnique({
+                    where: {
+                        userId_jobId: {
+                            userId,
+                            jobId: id,
+                        },
+                    },
+                }),
+            ]);
             if (match) {
                 matchDetails = {
                     matchScore: match.matchScore,
@@ -167,10 +233,15 @@ router.get('/:id', async (req, res) => {
                     recommendation: match.recommendation,
                 };
             }
+            if (app) {
+                applicationStatus = app.status;
+            }
         }
         res.json({
             ...job,
             matchDetails,
+            isApplied: !!applicationStatus,
+            applicationStatus,
         });
     }
     catch (error) {

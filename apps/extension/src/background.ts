@@ -12,7 +12,21 @@ chrome.runtime.onInstalled.addListener(() => {
   });
 });
 
-const API_URL = 'https://smartapply.up.railway.app';
+let API_URL = 'https://smartapply.up.railway.app';
+
+// Load stored API URL dynamically on startup
+chrome.storage.local.get(['apiUrl'], (result) => {
+  if (result.apiUrl) {
+    API_URL = result.apiUrl;
+  }
+});
+
+// Watch for API URL updates from content script
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === 'local' && changes.apiUrl) {
+    API_URL = changes.apiUrl.newValue || 'https://smartapply.up.railway.app';
+  }
+});
 
 function getStoredSession(): Promise<any | null> {
   return new Promise((resolve) => {

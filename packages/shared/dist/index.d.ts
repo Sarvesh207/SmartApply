@@ -56,6 +56,8 @@ export interface JobDTO {
     createdAt: Date;
     matchScore?: number | null;
     matchDetails?: JobMatchResult | null;
+    isApplied?: boolean;
+    applicationStatus?: string | null;
 }
 export interface ApplicationDTO {
     id: string;

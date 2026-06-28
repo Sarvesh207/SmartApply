@@ -496,9 +496,16 @@ function isSmartApplyWebApp(): boolean {
 if (isSmartApplyWebApp()) {
     // Determine central user data sources and sync scheduling
   function syncWithMasterState(profile: ProfileData | null, session: any | null) {
+    const isLocal = window.location.hostname === 'localhost' || 
+                    window.location.hostname === '127.0.0.1' || 
+                    window.location.port === '5173' || 
+                    window.location.port === '3000';
+    const apiUrl = isLocal ? 'http://localhost:5000' : 'https://smartapply.up.railway.app';
+
     chrome.storage.local.set({
       autofillProfile: profile,
-      smartApplySession: session
+      smartApplySession: session,
+      apiUrl: apiUrl
     }, () => {
       if (profile && !isLegacyDemoProfile(profile)) {
         chrome.runtime.sendMessage({ type: 'AUTHENTICATED_PROFILE', profile });
